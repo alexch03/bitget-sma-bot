@@ -90,10 +90,10 @@ class BitgetExchange:
         t = self.client.fetch_ticker(symbol)
         return float(t["last"])
 
-    def market_order(self, symbol: str, side: str, amount: float) -> dict:
+    def market_order(self, symbol: str, side: str, amount: float, params: dict | None = None) -> dict:
         assert side in ("buy", "sell"), side
-        log.info("placing %s market order on %s amount=%.6f", side, symbol, amount)
-        return self.client.create_order(symbol, "market", side, amount)
+        log.info("placing %s market order on %s amount=%.6f params=%s", side, symbol, amount, params or {})
+        return self.client.create_order(symbol, "market", side, amount, params=params or {})
 
 
 def build_exchange(cfg: Config) -> BitgetExchange:

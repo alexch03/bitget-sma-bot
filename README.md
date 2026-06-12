@@ -265,11 +265,37 @@ docs/
 
 ## Tests
 
+### Unit tests (no network)
+
 ```bash
 pytest
 ```
 
-34 unit tests, no network. The exchange and Telegram clients are mocked.
+34 unit tests. The exchange and Telegram clients are mocked.
+
+### End-to-end on Bitget demo
+
+`scripts/e2e_full_demo.py` runs a 9-step test suite against the **real Bitget
+demo** endpoint with your demo API key. It places small real orders
+(~12 USDT notional), watches the position appear via `fetch_positions`, and
+cleans up after itself.
+
+```bash
+# requires .env with MODE=demo and a Bitget DEMO API key
+python scripts/e2e_full_demo.py
+```
+
+Coverage:
+1. Market buy, position visible on Bitget, market sell to close
+2. `Trader.step()` with a forced long signal opens an order and keeps the book in sync
+3. Flip long → short closes the long and opens the short on the exchange
+4. Stop-loss triggers and closes both book and exchange position
+5. Take-profit triggers and closes both
+6. Five consecutive `flat` ticks place zero duplicate orders
+7. PnL accounting: real balance change after a full cycle is within fees
+8. Edge case: amount = 0 is rejected by ccxt
+9. Edge case: oversized order raises `InsufficientFunds`
+10. Final cleanup verifies no residual position
 
 ---
 
