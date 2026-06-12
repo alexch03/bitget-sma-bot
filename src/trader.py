@@ -17,7 +17,29 @@ from .telegram_notifier import TelegramNotifier
 log = logging.getLogger(__name__)
 
 
-STATE_FILE = Path(__file__).resolve().parent.parent / "state.json"
+REPO_ROOT = Path(__file__).resolve().parent.parent
+STATE_FILE = REPO_ROOT / "state.json"
+CONTROL_FILE = REPO_ROOT / "control.json"
+STATUS_FILE = REPO_ROOT / "bot_status.json"
+TRADES_FILE = REPO_ROOT / "trades.jsonl"
+
+
+def _read_control() -> dict:
+    if CONTROL_FILE.exists():
+        try:
+            return json.loads(CONTROL_FILE.read_text())
+        except Exception:
+            return {}
+    return {}
+
+
+def _write_control(data: dict) -> None:
+    CONTROL_FILE.write_text(json.dumps(data, indent=2))
+
+
+def _append_trade(entry: dict) -> None:
+    with TRADES_FILE.open("a") as f:
+        f.write(json.dumps(entry) + "\n")
 
 
 @dataclass
@@ -92,9 +114,24 @@ class Trader:
         return self.exchange.fetch_balance_usdt()
 
     def step(self) -> None:
+        # Honour control.json from the web UI: paused + force_close
+        ctrl = _read_control()
+        if ctrl.get("paused", False):
+            self._write_status(signal="paused", reason="paused via web", price=None)
+            return
+
         limit = max(self.strategy.warmup() + 50, 100)
         df = self.exchange.fetch_ohlcv(self.cfg.symbol, self.cfg.timeframe, limit=limit)
         price = float(df["close"].iloc[-1])
+
+        # Manual force-close (button in the web UI). Closes if open, resets the flag.
+        if ctrl.get("force_close", False):
+            if self.book.position is not None:
+                self._close(price, reason="manual")
+            ctrl["force_close"] = False
+            _write_control(ctrl)
+            self._write_status(signal="flat", reason="force-closed via web", price=price)
+            return
 
         # SL/TP first: if a position is open and the current price hits the
         # configured stop or target, exit before considering the strategy.
@@ -103,6 +140,7 @@ class Trader:
             if hit is not None:
                 log.info("[%s] %s hit at price=%.4f, closing position", self.cfg.mode, hit, price)
                 self._close(price, reason=hit)
+                self._write_status(signal=hit.lower(), reason=f"{hit} hit", price=price)
                 return
 
         decision = self.strategy.signal(df)
@@ -110,6 +148,8 @@ class Trader:
         log.info("[%s] price=%.4f strategy=%s signal=%s reason=%s position=%s",
                  self.cfg.mode, price, self.strategy.name, decision.signal, decision.reason,
                  self.book.position.side if self.book.position else "none")
+
+        self._write_status(signal=decision.signal, reason=decision.reason, price=price)
 
         if decision.signal == "flat":
             return
@@ -123,6 +163,32 @@ class Trader:
            (self.book.position.side == "short" and decision.signal == "long"):
             self._close(price)
             self._open(decision.signal, price)
+
+    def _write_status(self, *, signal: str, reason: str, price: float | None) -> None:
+        payload = {
+            "last_tick_at": time.time(),
+            "mode": self.cfg.mode,
+            "strategy": self.strategy.name,
+            "symbol": self.cfg.symbol,
+            "timeframe": self.cfg.timeframe,
+            "last_signal": signal,
+            "last_reason": reason,
+            "last_price": price,
+            "position": (
+                {
+                    "side": self.book.position.side,
+                    "amount": self.book.position.amount,
+                    "entry_price": self.book.position.entry_price,
+                    "opened_at": self.book.position.opened_at,
+                }
+                if self.book.position else None
+            ),
+            "balance": self.book.balance if self.cfg.mode == "paper" else None,
+        }
+        try:
+            STATUS_FILE.write_text(json.dumps(payload, indent=2))
+        except Exception as exc:  # noqa: BLE001
+            log.warning("could not write bot_status.json: %s", exc)
 
     def _sl_tp_hit(self, price: float) -> str | None:
         """Return 'SL' / 'TP' if the current price hits the configured stop or
@@ -181,18 +247,37 @@ class Trader:
         assert self.book.position is not None
         pos = self.book.position
         side_for_exchange = "sell" if pos.side == "long" else "buy"
+        entry = pos.entry_price
+        amount = pos.amount
 
+        pnl_value = 0.0
         if self.cfg.mode == "dry":
-            msg = f"[dry] would close {pos.side} {pos.amount:.6f} @ {price:.4f} ({reason})"
+            msg = f"[dry] would close {pos.side} {amount:.6f} @ {price:.4f} ({reason})"
         else:
             if self.cfg.mode in ("demo", "live"):
-                self.exchange.market_order(self.cfg.symbol, side_for_exchange, pos.amount)
-            pnl = self.book.close(price)
-            msg = f"CLOSE {pos.side.upper()} {self.cfg.symbol} @ {price:.4f} pnl={pnl:+.2f} balance={self.book.balance:.2f} reason={reason} [{self.cfg.mode}]"
+                self.exchange.market_order(self.cfg.symbol, side_for_exchange, amount, params={"reduceOnly": True})
+            pnl_value = self.book.close(price)
+            msg = f"CLOSE {pos.side.upper()} {self.cfg.symbol} @ {price:.4f} pnl={pnl_value:+.2f} balance={self.book.balance:.2f} reason={reason} [{self.cfg.mode}]"
 
         log.info(msg)
         self.notifier.send(msg)
         self._save_state()
+
+        # Append trade to trades.jsonl for the web dashboard
+        try:
+            _append_trade({
+                "closed_at": time.time(),
+                "mode": self.cfg.mode,
+                "symbol": self.cfg.symbol,
+                "side": pos.side,
+                "entry_price": entry,
+                "exit_price": price,
+                "amount": amount,
+                "pnl": pnl_value,
+                "reason": reason,
+            })
+        except Exception as exc:  # noqa: BLE001
+            log.warning("could not append trade: %s", exc)
 
 
 def poll_seconds(timeframe: str) -> int:
