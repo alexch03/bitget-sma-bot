@@ -18,7 +18,7 @@ OUTPUTS = [
     {
         "url": "http://127.0.0.1:5000/",
         "path": "docs/images/web-ui.png",
-        "viewport": {"width": 900, "height": 760},
+        "viewport": {"width": 1320, "height": 900},
     },
 ]
 
