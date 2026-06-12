@@ -80,6 +80,7 @@ class Trader:
             return self.book.balance
         if self.cfg.mode == "dry":
             return self.cfg.paper_balance
+        # demo and live both query the real (or demo) account
         return self.exchange.fetch_balance_usdt()
 
     def step(self) -> None:
@@ -117,11 +118,11 @@ class Trader:
         if self.cfg.mode == "dry":
             log.info("[dry] would %s %.6f @ %.4f", side_for_exchange, amount, price)
         else:
-            if self.cfg.mode == "live":
+            if self.cfg.mode in ("demo", "live"):
                 self.exchange.market_order(self.cfg.symbol, side_for_exchange, amount)
-            # track the position locally in both paper and live so the next
-            # tick knows we are in a trade. In live we assume the market
-            # order fills near the requested price — slippage is not modelled.
+            # track the position locally so the next tick knows we are in a
+            # trade. In demo/live we assume the market order fills near the
+            # requested price — slippage is not modelled.
             self.book.open(side, amount, price, time.time())
 
         msg = f"OPEN {side.upper()} {self.cfg.symbol} amount={amount:.6f} @ {price:.4f} [{self.cfg.mode}]"
@@ -137,7 +138,7 @@ class Trader:
         if self.cfg.mode == "dry":
             msg = f"[dry] would close {pos.side} {pos.amount:.6f} @ {price:.4f}"
         else:
-            if self.cfg.mode == "live":
+            if self.cfg.mode in ("demo", "live"):
                 self.exchange.market_order(self.cfg.symbol, side_for_exchange, pos.amount)
             pnl = self.book.close(price)
             msg = f"CLOSE {pos.side.upper()} {self.cfg.symbol} @ {price:.4f} pnl={pnl:+.2f} balance={self.book.balance:.2f} [{self.cfg.mode}]"

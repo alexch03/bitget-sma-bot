@@ -101,3 +101,26 @@ def test_dry_places_no_order_but_logs(monkeypatch, tmp_path):
     exchange.market_order.assert_not_called()
     # in dry we do not track a fake position either
     assert trader.book.position is None
+
+
+def test_demo_places_orders_like_live(monkeypatch, tmp_path):
+    """Demo mode = real orders on the demo exchange. Same code path as live,
+    just different keys and paptrading: 1 header set in exchange.py."""
+    df = _df([100.0] * 34 + [115.0])
+    trader, exchange = _trader("demo", df, monkeypatch, tmp_path)
+    trader.step()
+    assert exchange.market_order.call_count == 1
+    assert exchange.market_order.call_args.args[1] == "buy"
+    assert trader.book.position is not None
+    assert trader.book.position.side == "long"
+
+
+def test_demo_flip_closes_and_reopens(monkeypatch, tmp_path):
+    df_up = _df([100.0] * 34 + [115.0])
+    df_down = _df([100.0] * 34 + [85.0])
+    trader, exchange = _trader("demo", df_up, monkeypatch, tmp_path)
+    trader.step()
+    exchange.fetch_ohlcv.return_value = df_down
+    trader.step()
+    assert exchange.market_order.call_count == 3
+    assert trader.book.position.side == "short"

@@ -28,8 +28,19 @@ class BitgetExchange:
             "enableRateLimit": True,
             "options": {
                 "defaultType": "swap",
+                "defaultSubType": "linear",
             },
         })
+        if cfg.mode == "demo":
+            # Bitget demo trading requires header `paptrading: 1` (per official docs).
+            # ccxt's set_sandbox_mode adds it for Bitget; we also set it explicitly
+            # as a belt-and-suspenders guarantee.
+            try:
+                self.client.set_sandbox_mode(True)
+            except Exception:
+                self.client.options["sandboxMode"] = True
+            self.client.headers["paptrading"] = "1"
+            log.info("Bitget exchange set to DEMO (header paptrading=1)")
 
     def fetch_ohlcv(self, symbol: str, timeframe: str, limit: int = 200) -> pd.DataFrame:
         raw = self.client.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
@@ -61,7 +72,18 @@ class BitgetExchange:
         return df
 
     def fetch_balance_usdt(self) -> float:
-        bal = self.client.fetch_balance({"type": "swap"})
+        try:
+            bal = self.client.fetch_balance({"type": "swap"})
+        except ccxt.ExchangeError as exc:
+            if "40099" in str(exc) or "environment is incorrect" in str(exc).lower():
+                raise RuntimeError(
+                    "Bitget returned 'exchange environment is incorrect'. "
+                    "This means the API key you provided was generated on the LIVE "
+                    "dashboard, not the DEMO dashboard. Generate a demo key at "
+                    "https://www.bitget.com/asset/demo-trading (Personal Center -> "
+                    "API Key Management -> Create Demo API Key) and update your .env."
+                ) from exc
+            raise
         return float(bal.get("USDT", {}).get("free", 0.0) or 0.0)
 
     def fetch_ticker_price(self, symbol: str) -> float:

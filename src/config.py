@@ -10,7 +10,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(REPO_ROOT / ".env")
 
 
-VALID_MODES = ("paper", "dry", "live")
+VALID_MODES = ("paper", "dry", "demo", "live")
+MODES_THAT_PLACE_ORDERS = ("demo", "live")
 
 
 @dataclass
@@ -79,6 +80,13 @@ class Config:
                 )
             if not (self.api_key and self.api_secret and self.api_password):
                 raise RuntimeError("MODE=live requires Bitget API credentials")
+
+        if self.mode == "demo":
+            if not (self.api_key and self.api_secret and self.api_password):
+                raise RuntimeError(
+                    "MODE=demo requires Bitget DEMO API credentials "
+                    "(generate them on https://www.bitget.com/asset/demo-trading)"
+                )
 
     @property
     def telegram_enabled(self) -> bool:
