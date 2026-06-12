@@ -93,7 +93,7 @@ class Trader:
                     pos = Position(**data["position"])
                 return PaperBook(balance=data["balance"], position=pos)
             except Exception as exc:  # noqa: BLE001
-                log.warning("could not restore state: %s — starting fresh", exc)
+                log.warning("could not restore state: %s - starting fresh", exc)
         return PaperBook(balance=self.cfg.paper_balance)
 
     def _save_state(self) -> None:

@@ -105,6 +105,8 @@ def _spawn_bot() -> tuple[bool, str]:
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
+            encoding="utf-8",      # explicit so windows doesn't default to cp1252
+            errors="replace",      # never raise on a bad byte
             bufsize=1,
             env=env,
         )
@@ -1211,6 +1213,11 @@ setInterval(loadLogs, 4000);
 
 
 def main():
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
     cfg = load_config()
     app = create_app()
     log.info("starting web UI on http://%s:%d", cfg.web_host, cfg.web_port)

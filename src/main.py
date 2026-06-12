@@ -11,7 +11,18 @@ from .telegram_notifier import TelegramNotifier
 from .trader import Trader, poll_seconds
 
 
+def _force_utf8_io() -> None:
+    """On Windows the default console codec is cp1252 which mangles unicode.
+    Reconfigure stdout/stderr to UTF-8 so logs render correctly anywhere."""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
+
+
 def setup_logging(level: str) -> None:
+    _force_utf8_io()
     logging.basicConfig(
         level=level,
         format="%(asctime)s %(levelname)s %(name)s :: %(message)s",
@@ -24,7 +35,7 @@ def main() -> int:
     setup_logging(cfg.log_level)
     log = logging.getLogger("main")
 
-    log.info("bitget-sma-bot starting — mode=%s symbol=%s timeframe=%s",
+    log.info("bitget-sma-bot starting - mode=%s symbol=%s timeframe=%s",
              cfg.mode, cfg.symbol, cfg.timeframe)
 
     if cfg.mode == "live":

@@ -52,7 +52,7 @@ class BitgetExchange:
     def fetch_ohlcv_range(
         self, symbol: str, timeframe: str, since_ms: int, until_ms: int
     ) -> pd.DataFrame:
-        """Paginated fetch — used by the backtest script."""
+        """Paginated fetch - used by the backtest script."""
         out: list[list] = []
         cursor = since_ms
         tf_ms = self.client.parse_timeframe(timeframe) * 1000

@@ -108,6 +108,11 @@ def _print_section(title: str) -> None:
 
 
 def main() -> int:
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
     logging.basicConfig(
         level="INFO",
         format="%(asctime)s %(levelname)s %(name)s :: %(message)s",
@@ -139,7 +144,7 @@ def main() -> int:
     print(f"trade size: {amount} BTC (~{round(amount * start_price, 2)} USDT)")
 
     # ---- TEST 1: market buy + position appears + market sell ----
-    _print_section("TEST 1 — Market buy, position visible, market sell to close")
+    _print_section("TEST 1 - Market buy, position visible, market sell to close")
     try:
         exchange.market_order(symbol, "buy", amount)
         time.sleep(1.5)
@@ -160,7 +165,7 @@ def main() -> int:
         _close_any_position(exchange, symbol)
 
     # ---- TEST 2: Trader.step() forced long opens an order on the exchange ----
-    _print_section("TEST 2 — Trader.step() with forced long signal opens on exchange")
+    _print_section("TEST 2 - Trader.step() with forced long signal opens on exchange")
     try:
         strat = ForcedStrategy()
         strat.next_signal = "long"
@@ -191,7 +196,7 @@ def main() -> int:
         _close_any_position(exchange, symbol)
 
     # ---- TEST 3: flip long -> short ----
-    _print_section("TEST 3 — Flip long -> short via Trader.step()")
+    _print_section("TEST 3 - Flip long -> short via Trader.step()")
     try:
         strat.next_signal = "short"
         original_fetch_ohlcv = exchange.fetch_ohlcv
@@ -203,7 +208,7 @@ def main() -> int:
         # On exchange, in one-way mode, sell qty > current long closes long + opens short
         pos = _has_position(exchange, symbol)
         assert pos is not None and pos["side"] == "short", f"exchange not short: {pos}"
-        print(f"  OK flip succeeded — exchange shows short {pos['contracts']}")
+        print(f"  OK flip succeeded - exchange shows short {pos['contracts']}")
         results.append(("flip long->short", True, ""))
         exchange.fetch_ohlcv = original_fetch_ohlcv
     except Exception as exc:
@@ -217,7 +222,7 @@ def main() -> int:
     time.sleep(1.0)
 
     # ---- TEST 4: SL trigger ----
-    _print_section("TEST 4 — Stop-loss triggers and closes position")
+    _print_section("TEST 4 - Stop-loss triggers and closes position")
     try:
         # Build a fresh config with SL=2%
         from dataclasses import replace
@@ -250,7 +255,7 @@ def main() -> int:
         _close_any_position(exchange, symbol)
 
     # ---- TEST 5: TP trigger ----
-    _print_section("TEST 5 — Take-profit triggers and closes position")
+    _print_section("TEST 5 - Take-profit triggers and closes position")
     try:
         cfg_tp = replace(cfg, stop_loss_pct=0.0, take_profit_pct=2.0)
         strat = ForcedStrategy()
@@ -277,7 +282,7 @@ def main() -> int:
         _close_any_position(exchange, symbol)
 
     # ---- TEST 6: multi-tick no duplicate ----
-    _print_section("TEST 6 — 5 ticks with flat signal: zero duplicate orders")
+    _print_section("TEST 6 - 5 ticks with flat signal: zero duplicate orders")
     try:
         strat = ForcedStrategy()
         strat.next_signal = "long"
@@ -310,7 +315,7 @@ def main() -> int:
         time.sleep(1.0)
 
     # ---- TEST 7: PnL accounting ----
-    _print_section("TEST 7 — Real balance change consistent with book accounting")
+    _print_section("TEST 7 - Real balance change consistent with book accounting")
     try:
         bal_before = exchange.fetch_balance_usdt()
         strat = ForcedStrategy()
@@ -340,7 +345,7 @@ def main() -> int:
         _close_any_position(exchange, symbol)
 
     # ---- TEST 8: edge cases ----
-    _print_section("TEST 8 — Edge case: zero amount + invalid params")
+    _print_section("TEST 8 - Edge case: zero amount + invalid params")
     try:
         # amount=0 -> ccxt should raise a clear error
         try:
