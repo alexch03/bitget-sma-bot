@@ -114,12 +114,15 @@ class Trader:
 
         side_for_exchange = "buy" if side == "long" else "sell"
 
-        if self.cfg.mode == "paper":
-            self.book.open(side, amount, price, time.time())
-        elif self.cfg.mode == "dry":
+        if self.cfg.mode == "dry":
             log.info("[dry] would %s %.6f @ %.4f", side_for_exchange, amount, price)
-        else:  # live
-            self.exchange.market_order(self.cfg.symbol, side_for_exchange, amount)
+        else:
+            if self.cfg.mode == "live":
+                self.exchange.market_order(self.cfg.symbol, side_for_exchange, amount)
+            # track the position locally in both paper and live so the next
+            # tick knows we are in a trade. In live we assume the market
+            # order fills near the requested price — slippage is not modelled.
+            self.book.open(side, amount, price, time.time())
 
         msg = f"OPEN {side.upper()} {self.cfg.symbol} amount={amount:.6f} @ {price:.4f} [{self.cfg.mode}]"
         log.info(msg)
@@ -131,15 +134,13 @@ class Trader:
         pos = self.book.position
         side_for_exchange = "sell" if pos.side == "long" else "buy"
 
-        if self.cfg.mode == "paper":
-            pnl = self.book.close(price)
-            msg = f"CLOSE {pos.side.upper()} {self.cfg.symbol} @ {price:.4f} pnl={pnl:+.2f} balance={self.book.balance:.2f}"
-        elif self.cfg.mode == "dry":
+        if self.cfg.mode == "dry":
             msg = f"[dry] would close {pos.side} {pos.amount:.6f} @ {price:.4f}"
         else:
-            self.exchange.market_order(self.cfg.symbol, side_for_exchange, pos.amount)
-            self.book.position = None
-            msg = f"CLOSE {pos.side.upper()} {self.cfg.symbol} @ {price:.4f} [live]"
+            if self.cfg.mode == "live":
+                self.exchange.market_order(self.cfg.symbol, side_for_exchange, pos.amount)
+            pnl = self.book.close(price)
+            msg = f"CLOSE {pos.side.upper()} {self.cfg.symbol} @ {price:.4f} pnl={pnl:+.2f} balance={self.book.balance:.2f} [{self.cfg.mode}]"
 
         log.info(msg)
         self.notifier.send(msg)
