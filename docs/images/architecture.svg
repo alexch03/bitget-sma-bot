@@ -1,0 +1,255 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 600" width="980" height="600" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif'>
+  <!-- ===================== DEFS ===================== -->
+  <defs>
+    <!-- Arrow marker (solid) -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5f6368"/>
+    </marker>
+
+    <!-- Arrow marker (dashed/lighter) -->
+    <marker id="arrow-dash" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#9aa0a6"/>
+    </marker>
+
+    <!-- Subtle drop shadow -->
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="1.2"/>
+      <feOffset dx="0" dy="1" result="off"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.18"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <!-- Box styles via classes -->
+    <style>
+      .label-title  { font-size: 14px; font-weight: 600; fill: #202124; }
+      .label-sub    { font-size: 12px; fill: #5f6368; }
+      .label-small  { font-size: 11px; fill: #5f6368; }
+      .zone-title   { font-size: 12px; font-weight: 600; fill: #80868b; letter-spacing: 1px; }
+      .arrow-label  { font-size: 11px; fill: #5f6368; }
+      .core   { fill: #e8f0fe; stroke: #1a73e8; stroke-width: 1.4; }
+      .ext    { fill: #fce8e6; stroke: #d93025; stroke-width: 1.4; }
+      .util   { fill: #e6f4ea; stroke: #188038; stroke-width: 1.4; }
+      .file   { fill: #fff8e1; stroke: #f9ab00; stroke-width: 1.4; }
+      .zone   { fill: none; stroke: #dadce0; stroke-width: 1; stroke-dasharray: 4 4; }
+      .badge  { fill: #ffffff; stroke: #dadce0; stroke-width: 1; }
+      .line   { stroke: #5f6368; stroke-width: 1.4; fill: none; }
+      .line-dash { stroke: #9aa0a6; stroke-width: 1.2; fill: none; stroke-dasharray: 4 3; }
+    </style>
+  </defs>
+
+  <!-- ===================== BACKGROUND ===================== -->
+  <rect x="0" y="0" width="980" height="600" fill="#f7f8fa"/>
+
+  <!-- ===================== TITLE ===================== -->
+  <text x="32" y="38" font-size="18" font-weight="700" fill="#202124">bitget-sma-bot — architecture</text>
+  <text x="32" y="56" class="label-small">Config-driven trading bot with pluggable strategies, paper/dry/demo/live modes</text>
+
+  <!-- ===================== MODES BADGE (top-right) ===================== -->
+  <g transform="translate(740,24)">
+    <rect class="badge" x="0" y="0" width="216" height="44" rx="8"/>
+    <text x="12" y="18" class="zone-title">MODES</text>
+    <text x="12" y="36" font-size="12" fill="#202124">paper  ·  dry  ·  demo  ·  live</text>
+  </g>
+
+  <!-- ===================== ZONE BOXES (dashed group backgrounds) ===================== -->
+  <!-- Config zone -->
+  <rect class="zone" x="24" y="100" width="180" height="200" rx="10"/>
+  <text x="36" y="120" class="zone-title">CONFIG</text>
+
+  <!-- Main loop zone -->
+  <rect class="zone" x="224" y="100" width="500" height="320" rx="10"/>
+  <text x="236" y="120" class="zone-title">MAIN LOOP</text>
+
+  <!-- Side channels zone -->
+  <rect class="zone" x="744" y="100" width="212" height="320" rx="10"/>
+  <text x="756" y="120" class="zone-title">EXTERNAL</text>
+
+  <!-- Utilities zone (bottom) -->
+  <rect class="zone" x="24" y="440" width="932" height="140" rx="10"/>
+  <text x="36" y="460" class="zone-title">UTILITIES</text>
+
+  <!-- ===================== CONFIG ZONE ===================== -->
+  <!-- .env file -->
+  <g filter="url(#softShadow)">
+    <rect class="file" x="48" y="146" width="132" height="56" rx="8"/>
+  </g>
+  <text x="114" y="170" text-anchor="middle" class="label-title">.env</text>
+  <text x="114" y="188" text-anchor="middle" class="label-sub">API keys, params</text>
+
+  <!-- Config module -->
+  <g filter="url(#softShadow)">
+    <rect class="core" x="48" y="230" width="132" height="56" rx="8"/>
+  </g>
+  <text x="114" y="254" text-anchor="middle" class="label-title">Config</text>
+  <text x="114" y="272" text-anchor="middle" class="label-sub">loader / validator</text>
+
+  <!-- .env -> Config -->
+  <path class="line" d="M114,202 L114,228" marker-end="url(#arrow)"/>
+
+  <!-- ===================== MAIN LOOP ZONE ===================== -->
+  <!-- Trader (center) -->
+  <g filter="url(#softShadow)">
+    <rect class="core" x="408" y="200" width="148" height="72" rx="8"/>
+  </g>
+  <text x="482" y="226" text-anchor="middle" class="label-title">Trader</text>
+  <text x="482" y="244" text-anchor="middle" class="label-sub">main loop · risk</text>
+  <text x="482" y="260" text-anchor="middle" class="label-sub">position sizing</text>
+
+  <!-- Strategy interface + 3 impls -->
+  <g filter="url(#softShadow)">
+    <rect class="core" x="248" y="146" width="148" height="138" rx="8"/>
+  </g>
+  <text x="322" y="168" text-anchor="middle" class="label-title">Strategy</text>
+  <text x="322" y="184" text-anchor="middle" class="label-sub">pluggable interface</text>
+  <!-- divider -->
+  <line x1="262" y1="194" x2="382" y2="194" stroke="#c5d9fb" stroke-width="1"/>
+  <text x="322" y="214" text-anchor="middle" font-size="12" fill="#202124">SMA Crossover</text>
+  <text x="322" y="234" text-anchor="middle" font-size="12" fill="#202124">Bollinger Breakout</text>
+  <text x="322" y="254" text-anchor="middle" font-size="12" fill="#202124">RSI MR</text>
+
+  <!-- BitgetExchange wrapper -->
+  <g filter="url(#softShadow)">
+    <rect class="core" x="568" y="200" width="148" height="72" rx="8"/>
+  </g>
+  <text x="642" y="226" text-anchor="middle" class="label-title">BitgetExchange</text>
+  <text x="642" y="244" text-anchor="middle" class="label-sub">ccxt wrapper</text>
+  <text x="642" y="260" text-anchor="middle" class="label-sub">orders · OHLCV</text>
+
+  <!-- runtime.json (control plane file) -->
+  <g filter="url(#softShadow)">
+    <rect class="file" x="408" y="320" width="148" height="56" rx="8"/>
+  </g>
+  <text x="482" y="344" text-anchor="middle" class="label-title">runtime.json</text>
+  <text x="482" y="362" text-anchor="middle" class="label-sub">hot-reload state</text>
+
+  <!-- Config -> Trader -->
+  <path class="line" d="M180,258 L406,238" marker-end="url(#arrow)"/>
+  <text x="265" y="240" class="arrow-label">loads</text>
+
+  <!-- Trader <-> Strategy -->
+  <path class="line" d="M408,224 L396,210" marker-end="url(#arrow)"/>
+  <path class="line" d="M396,225 L408,243" marker-end="url(#arrow)"/>
+  <text x="332" y="290" class="arrow-label">signals</text>
+
+  <!-- Trader -> BitgetExchange -->
+  <path class="line" d="M556,236 L566,236" marker-end="url(#arrow)"/>
+  <path class="line" d="M566,250 L556,250" marker-end="url(#arrow)"/>
+
+  <!-- Trader -> runtime.json (read on reload) -->
+  <path class="line-dash" d="M482,272 L482,318" marker-end="url(#arrow-dash)"/>
+  <text x="490" y="298" class="arrow-label">reload</text>
+
+  <!-- ===================== EXTERNAL ZONE ===================== -->
+  <!-- API Bitget (cloud) -->
+  <g filter="url(#softShadow)">
+    <path class="ext" d="
+      M790,184
+      a22,22 0 0 1 22,-22
+      h62
+      a26,26 0 0 1 26,26
+      a18,18 0 0 1 -8,34
+      h-94
+      a22,22 0 0 1 -8,-38
+      z"/>
+  </g>
+  <text x="846" y="194" text-anchor="middle" class="label-title">Bitget API</text>
+  <text x="846" y="210" text-anchor="middle" class="label-sub">REST · WebSocket</text>
+
+  <!-- Telegram API (cloud) -->
+  <g filter="url(#softShadow)">
+    <path class="ext" d="
+      M790,290
+      a22,22 0 0 1 22,-22
+      h62
+      a26,26 0 0 1 26,26
+      a18,18 0 0 1 -8,34
+      h-94
+      a22,22 0 0 1 -8,-38
+      z"/>
+  </g>
+  <text x="846" y="300" text-anchor="middle" class="label-title">Telegram API</text>
+  <text x="846" y="316" text-anchor="middle" class="label-sub">notifications</text>
+
+  <!-- TelegramNotifier (in main loop) -->
+  <g filter="url(#softShadow)">
+    <rect class="core" x="568" y="320" width="148" height="56" rx="8"/>
+  </g>
+  <text x="642" y="344" text-anchor="middle" class="label-title">TelegramNotifier</text>
+  <text x="642" y="362" text-anchor="middle" class="label-sub">events · alerts</text>
+
+  <!-- BitgetExchange -> Bitget API -->
+  <path class="line" d="M716,226 L788,202" marker-end="url(#arrow)"/>
+  <path class="line" d="M788,222 L716,250" marker-end="url(#arrow)"/>
+  <text x="730" y="200" class="arrow-label">ccxt</text>
+
+  <!-- Trader -> TelegramNotifier -->
+  <path class="line" d="M556,335 L566,335" marker-end="url(#arrow)"/>
+
+  <!-- TelegramNotifier -> Telegram API -->
+  <path class="line" d="M716,340 L788,310" marker-end="url(#arrow)"/>
+
+  <!-- ===================== UTILITIES ZONE (bottom) ===================== -->
+  <!-- Web UI (Flask) -->
+  <g filter="url(#softShadow)">
+    <rect class="util" x="60" y="478" width="180" height="76" rx="8"/>
+  </g>
+  <text x="150" y="504" text-anchor="middle" class="label-title">Web UI (Flask)</text>
+  <text x="150" y="522" text-anchor="middle" class="label-sub">control panel</text>
+  <text x="150" y="538" text-anchor="middle" class="label-sub">localhost dashboard</text>
+
+  <!-- Backtest engine -->
+  <g filter="url(#softShadow)">
+    <rect class="util" x="380" y="478" width="200" height="76" rx="8"/>
+  </g>
+  <text x="480" y="504" text-anchor="middle" class="label-title">Backtest engine</text>
+  <text x="480" y="522" text-anchor="middle" class="label-sub">backtrader</text>
+  <text x="480" y="538" text-anchor="middle" class="label-sub">historical OHLCV from Bitget</text>
+
+  <!-- Backtest output -->
+  <g filter="url(#softShadow)">
+    <rect class="file" x="640" y="478" width="170" height="76" rx="8"/>
+  </g>
+  <text x="725" y="504" text-anchor="middle" class="label-title">Results</text>
+  <text x="725" y="522" text-anchor="middle" class="label-sub">CSV reports</text>
+  <text x="725" y="538" text-anchor="middle" class="label-sub">PNG equity curves</text>
+
+  <!-- Web UI <-> runtime.json -->
+  <path class="line" d="M240,500 L408,348" marker-end="url(#arrow)"/>
+  <path class="line" d="M420,360 L252,512" marker-end="url(#arrow)"/>
+  <text x="290" y="430" class="arrow-label">writes / reads</text>
+
+  <!-- Backtest -> Bitget API (historical data) -->
+  <path class="line-dash" d="M580,490 C 760,470 820,300 836,238" marker-end="url(#arrow-dash)"/>
+  <text x="700" y="455" class="arrow-label">historical OHLCV</text>
+
+  <!-- Backtest -> Results -->
+  <path class="line" d="M580,516 L638,516" marker-end="url(#arrow)"/>
+
+  <!-- ===================== LEGEND (bottom-right of canvas) ===================== -->
+  <g transform="translate(820,30)">
+    <!-- intentionally empty: legend moved into modes badge area to keep header clean -->
+  </g>
+
+  <!-- ===================== SMALL LEGEND (inline, bottom) ===================== -->
+  <g transform="translate(32,572)">
+    <rect x="0" y="-10" width="14" height="10" rx="2" class="core"/>
+    <text x="20" y="-1" class="label-small">core module</text>
+
+    <rect x="110" y="-10" width="14" height="10" rx="2" class="ext"/>
+    <text x="130" y="-1" class="label-small">external API</text>
+
+    <rect x="222" y="-10" width="14" height="10" rx="2" class="util"/>
+    <text x="242" y="-1" class="label-small">utility</text>
+
+    <rect x="298" y="-10" width="14" height="10" rx="2" class="file"/>
+    <text x="318" y="-1" class="label-small">file / state</text>
+
+    <line x1="402" y1="-5" x2="430" y2="-5" class="line" marker-end="url(#arrow)"/>
+    <text x="438" y="-1" class="label-small">data / call</text>
+
+    <line x1="520" y1="-5" x2="548" y2="-5" class="line-dash" marker-end="url(#arrow-dash)"/>
+    <text x="556" y="-1" class="label-small">read / async</text>
+  </g>
+</svg>
