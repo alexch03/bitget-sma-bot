@@ -20,21 +20,27 @@ def _df(close_values):
     }, index=idx)
 
 
-def _cfg(mode):
+def _cfg(mode, stop_loss_pct=0.0, take_profit_pct=0.0, strategy="sma_crossover"):
     return Config(
         api_key="k", api_secret="s", api_password="p",
         mode=mode, confirm_live=True,
         symbol="BTC/USDT:USDT", timeframe="1h",
+        strategy=strategy,
         sma_fast=5, sma_slow=20,
-        risk_pct=2.0, paper_balance=1000.0,
+        bb_period=20, bb_std=2.0,
+        rsi_period=14, rsi_oversold=30, rsi_overbought=70,
+        risk_pct=2.0,
+        stop_loss_pct=stop_loss_pct,
+        take_profit_pct=take_profit_pct,
+        paper_balance=1000.0,
         telegram_bot_token="", telegram_chat_id="",
         web_host="127.0.0.1", web_port=5000,
         log_level="WARNING",
     )
 
 
-def _trader(mode, df, monkeypatch, tmp_path):
-    cfg = _cfg(mode)
+def _trader(mode, df, monkeypatch, tmp_path, **cfg_overrides):
+    cfg = _cfg(mode, **cfg_overrides)
     # isolate state.json per test
     from src import trader as trader_mod
     monkeypatch.setattr(trader_mod, "STATE_FILE", tmp_path / "state.json")
@@ -124,3 +130,69 @@ def test_demo_flip_closes_and_reopens(monkeypatch, tmp_path):
     trader.step()
     assert exchange.market_order.call_count == 3
     assert trader.book.position.side == "short"
+
+
+def test_stop_loss_closes_long(monkeypatch, tmp_path):
+    # Open a long, then next tick the price has dropped past the SL
+    df_up = _df([100.0] * 34 + [115.0])
+    trader, exchange = _trader("paper", df_up, monkeypatch, tmp_path, stop_loss_pct=5.0)
+    trader.step()
+    assert trader.book.position.side == "long"
+    entry = trader.book.position.entry_price
+
+    # Next tick: price drops more than 5% below entry → SL triggers
+    df_drop = _df([100.0] * 34 + [115.0] + [entry * 0.93])
+    exchange.fetch_ohlcv.return_value = df_drop
+    trader.step()
+    assert trader.book.position is None
+
+
+def test_take_profit_closes_long(monkeypatch, tmp_path):
+    df_up = _df([100.0] * 34 + [115.0])
+    trader, exchange = _trader("paper", df_up, monkeypatch, tmp_path, take_profit_pct=3.0)
+    trader.step()
+    assert trader.book.position.side == "long"
+    entry = trader.book.position.entry_price
+
+    df_pump = _df([100.0] * 34 + [115.0] + [entry * 1.05])
+    exchange.fetch_ohlcv.return_value = df_pump
+    trader.step()
+    assert trader.book.position is None
+
+
+def test_stop_loss_closes_short(monkeypatch, tmp_path):
+    df_down = _df([100.0] * 34 + [85.0])
+    trader, exchange = _trader("paper", df_down, monkeypatch, tmp_path, stop_loss_pct=5.0)
+    trader.step()
+    assert trader.book.position.side == "short"
+    entry = trader.book.position.entry_price
+
+    df_pump = _df([100.0] * 34 + [85.0] + [entry * 1.07])
+    exchange.fetch_ohlcv.return_value = df_pump
+    trader.step()
+    assert trader.book.position is None
+
+
+def test_no_sl_tp_when_disabled(monkeypatch, tmp_path):
+    df_up = _df([100.0] * 34 + [115.0])
+    trader, exchange = _trader("paper", df_up, monkeypatch, tmp_path,
+                                stop_loss_pct=0.0, take_profit_pct=0.0)
+    trader.step()
+    assert trader.book.position is not None
+    entry = trader.book.position.entry_price
+
+    # Even with a massive drop, no SL exit because SL_PCT=0 (disabled)
+    df_crash = _df([100.0] * 34 + [115.0] + [entry * 0.5])
+    exchange.fetch_ohlcv.return_value = df_crash
+    trader.step()
+    # position is still open (no signal flip, no SL)
+    assert trader.book.position is not None
+
+
+def test_strategy_switch_to_bollinger(monkeypatch, tmp_path):
+    # Use a price series that triggers a Bollinger breakout up on the last bar
+    closes = [100.0] * 30 + [100.5, 99.5, 100.5, 99.5, 130.0]
+    df = _df(closes)
+    trader, _ = _trader("paper", df, monkeypatch, tmp_path, strategy="bollinger")
+    trader.step()
+    assert trader.strategy.name == "bollinger"

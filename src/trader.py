@@ -9,7 +9,8 @@ from typing import Optional
 
 from .config import Config
 from .exchange import BitgetExchange
-from .strategy import latest_signal, position_size
+from .strategies import Strategy
+from .strategy import position_size
 from .telegram_notifier import TelegramNotifier
 
 
@@ -48,10 +49,17 @@ class PaperBook:
 
 
 class Trader:
-    def __init__(self, cfg: Config, exchange: BitgetExchange, notifier: TelegramNotifier):
+    def __init__(
+        self,
+        cfg: Config,
+        exchange: BitgetExchange,
+        notifier: TelegramNotifier,
+        strategy: Strategy | None = None,
+    ):
         self.cfg = cfg
         self.exchange = exchange
         self.notifier = notifier
+        self.strategy = strategy if strategy is not None else cfg.build_strategy()
         self.book = self._load_or_init_book()
 
     def _load_or_init_book(self) -> PaperBook:
@@ -84,15 +92,25 @@ class Trader:
         return self.exchange.fetch_balance_usdt()
 
     def step(self) -> None:
-        df = self.exchange.fetch_ohlcv(self.cfg.symbol, self.cfg.timeframe, limit=self.cfg.sma_slow + 50)
-        decision = latest_signal(df, self.cfg.sma_fast, self.cfg.sma_slow)
+        limit = max(self.strategy.warmup() + 50, 100)
+        df = self.exchange.fetch_ohlcv(self.cfg.symbol, self.cfg.timeframe, limit=limit)
         price = float(df["close"].iloc[-1])
 
-        log.info("[%s] price=%.4f decision=%s reason=%s position=%s",
-                 self.cfg.mode, price, decision.signal, decision.reason,
+        # SL/TP first: if a position is open and the current price hits the
+        # configured stop or target, exit before considering the strategy.
+        if self.book.position is not None:
+            hit = self._sl_tp_hit(price)
+            if hit is not None:
+                log.info("[%s] %s hit at price=%.4f, closing position", self.cfg.mode, hit, price)
+                self._close(price, reason=hit)
+                return
+
+        decision = self.strategy.signal(df)
+
+        log.info("[%s] price=%.4f strategy=%s signal=%s reason=%s position=%s",
+                 self.cfg.mode, price, self.strategy.name, decision.signal, decision.reason,
                  self.book.position.side if self.book.position else "none")
 
-        # Decide what to do based on current position and new signal
         if decision.signal == "flat":
             return
 
@@ -105,6 +123,35 @@ class Trader:
            (self.book.position.side == "short" and decision.signal == "long"):
             self._close(price)
             self._open(decision.signal, price)
+
+    def _sl_tp_hit(self, price: float) -> str | None:
+        """Return 'SL' / 'TP' if the current price hits the configured stop or
+        target relative to the open position, else None.
+
+        SL/TP are checked locally on each tick. They are NOT placed as exchange
+        orders. If the bot is down when price moves, no exit happens. Document
+        this trade-off in docs/strategy.md.
+        """
+        pos = self.book.position
+        if pos is None:
+            return None
+
+        sl_pct = self.cfg.stop_loss_pct
+        tp_pct = self.cfg.take_profit_pct
+
+        if sl_pct > 0:
+            if pos.side == "long" and price <= pos.entry_price * (1 - sl_pct / 100):
+                return "SL"
+            if pos.side == "short" and price >= pos.entry_price * (1 + sl_pct / 100):
+                return "SL"
+
+        if tp_pct > 0:
+            if pos.side == "long" and price >= pos.entry_price * (1 + tp_pct / 100):
+                return "TP"
+            if pos.side == "short" and price <= pos.entry_price * (1 - tp_pct / 100):
+                return "TP"
+
+        return None
 
     def _open(self, side: str, price: float) -> None:
         balance = self._current_balance()
@@ -130,18 +177,18 @@ class Trader:
         self.notifier.send(msg)
         self._save_state()
 
-    def _close(self, price: float) -> None:
+    def _close(self, price: float, reason: str = "signal") -> None:
         assert self.book.position is not None
         pos = self.book.position
         side_for_exchange = "sell" if pos.side == "long" else "buy"
 
         if self.cfg.mode == "dry":
-            msg = f"[dry] would close {pos.side} {pos.amount:.6f} @ {price:.4f}"
+            msg = f"[dry] would close {pos.side} {pos.amount:.6f} @ {price:.4f} ({reason})"
         else:
             if self.cfg.mode in ("demo", "live"):
                 self.exchange.market_order(self.cfg.symbol, side_for_exchange, pos.amount)
             pnl = self.book.close(price)
-            msg = f"CLOSE {pos.side.upper()} {self.cfg.symbol} @ {price:.4f} pnl={pnl:+.2f} balance={self.book.balance:.2f} [{self.cfg.mode}]"
+            msg = f"CLOSE {pos.side.upper()} {self.cfg.symbol} @ {price:.4f} pnl={pnl:+.2f} balance={self.book.balance:.2f} reason={reason} [{self.cfg.mode}]"
 
         log.info(msg)
         self.notifier.send(msg)
