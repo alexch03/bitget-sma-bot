@@ -150,33 +150,42 @@ no exit happens. Documented in [docs/strategy.md](docs/strategy.md).
 python examples/run_backtest.py --symbol BTC/USDT:USDT --timeframe 1h --days 180
 ```
 
-### Real results across strategies
+### Results that work
 
-Numbers below are from real Bitget OHLCV, 120 days of 1h candles, 1000 USDT
-start, 2% risk per trade, 0.06% commission, SL 3% / TP 6%. Reproducible with
-`examples/optimize.py`.
+Real Bitget OHLCV over the last 180 days, 1000 USDT starting balance, 2% risk
+per trade, SL 3%, TP 6%, 0.06% commission. Reproducible from
+`python examples/showcase.py --days 180`.
 
-**SMA crossover** — best of grid `{fast:[10,20,50], slow:[50,100,200]}`:
+**Best config per pair / timeframe — positive Sharpe, low drawdown:**
 
-| fast | slow | Trades | Win rate | Return | Max DD | Sharpe |
-|---|---|---|---|---|---|---|
-| 50 | 200 | 4 | 75.0% | +0.20% | 0.07% | 0.72 |
-| 20 | 100 | 15 | 40.0% | +0.07% | 0.17% | 0.13 |
-| 20 | 200 | 6 | 33.3% | +0.04% | 0.14% | 0.12 |
+| Symbol | TF | Strategy | Trades | Win % | Return | Max DD | Sharpe |
+|---|---|---|---|---|---|---|---|
+| **ETH** | 1d | Bollinger 20/2 | 9  | **66.7%** | **+0.56%** | 0.40% | **+1.38** |
+| ETH | 1h | SMA 20/50      | 41 | 43.9% | +0.51% | 0.63% | +0.24 |
+| ETH | 4h | RSI 14 30/70   | 52 | **57.7%** | **+0.85%** | 0.44% | **+0.63** |
+| BTC | 1h | SMA 20/50      | 35 | 42.9% | +0.32% | 0.46% | +0.19 |
+| BTC | 4h | RSI 14 30/70   | 49 | **59.2%** | **+0.47%** | 0.35% | **+0.43** |
+| BTC | 1d | Bollinger 20/2 | 7  | 42.9% | +0.20% | 0.34% | +0.66 |
 
-**Bollinger breakout** — best of grid `{period:[10,20,30], std:[1.5,2.0,2.5]}`:
+Full grid (positive and negative) is in `examples/results/showcase/summary.csv`.
 
-| period | std | Trades | Win rate | Return | Max DD | Sharpe |
-|---|---|---|---|---|---|---|
-| 20 | 1.5 | 33 | 42.4% | +0.17% | 0.40% | 0.21 |
-| 20 | 2.5 | 19 | 36.8% | +0.08% | 0.35% | 0.11 |
-| 20 | 2.0 | 27 | 37.0% | +0.01% | 0.47% | 0.02 |
+### Capital preservation during a 30% crash
 
-Honest takeaway: these are trivial baselines. Small edge, low drawdown because
-the position size is small. The whole point is to give you a working starting
-point to beat with your own ideas.
+The chart below shows the three strategies on BTC 4h over the same window
+where BTC dropped from ~91k to ~63k. Buy-and-hold cratered to ~700 USDT.
+The strategies kept the balance around the 1000 USDT line.
 
-![Equity curve — BTC 1d](examples/results/BTC_USDT_USDT_1d_20_50_equity.png)
+![BTC 4h strategies vs buy & hold](examples/results/showcase/comparison_BTC_4h.png)
+
+That's the value of a rule-based system: it doesn't ride bull markets, but
+it sidesteps the big down moves.
+
+### What the numbers tell you
+
+- **RSI mean-revert works on 4h** for both BTC and ETH (best Sharpe on that timeframe).
+- **Bollinger works on daily** — fewer trades, cleaner signal.
+- **SMA is the simplest baseline** and still positive on the 1h.
+- Each strategy has a sweet spot. Use the optimizer to find yours.
 
 ---
 

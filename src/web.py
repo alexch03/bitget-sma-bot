@@ -248,14 +248,17 @@ def create_app():
         cache["ts"] = now
         return cache["price"], cache["balance"], cache["auth_ok"]
 
-    def _fresh_candles(limit: int = 200):
-        cfg = _cfg()
+    def _fresh_candles_for(symbol: str, timeframe: str, limit: int = 200):
+        """Fetch (and cache for 25s) the OHLCV of any symbol/timeframe pair."""
+        key = (symbol, timeframe)
+        candles_cache = cache.setdefault("candles_by_key", {})
+        cached = candles_cache.get(key)
         now = time.time()
-        if cache.get("candles_ts") and now - cache["candles_ts"] < 25 and cache.get("candles"):
-            return cache["candles"], cache["candles_signature"]
+        if cached and now - cached["ts"] < 25:
+            return cached["data"]
         try:
             ex = _ensure_exchange()
-            df = ex.fetch_ohlcv(cfg.symbol, cfg.timeframe, limit=limit)
+            df = ex.fetch_ohlcv(symbol, timeframe, limit=limit)
             arr = []
             for ts, row in df.iterrows():
                 arr.append({
@@ -265,12 +268,10 @@ def create_app():
                     "low": float(row["low"]),
                     "close": float(row["close"]),
                 })
-            cache["candles"] = arr
-            cache["candles_ts"] = now
-            cache["candles_signature"] = (cfg.symbol, cfg.timeframe)
-            return arr, cache["candles_signature"]
+            candles_cache[key] = {"ts": now, "data": arr}
+            return arr
         except Exception:
-            return cache.get("candles") or [], cache.get("candles_signature")
+            return cached["data"] if cached else []
 
     # ----- routes ----------------------------------------------------------
 
@@ -356,15 +357,22 @@ def create_app():
 
     @app.route("/api/candles", methods=["GET"])
     def api_candles():
+        cfg = _cfg()
+        symbol = request.args.get("symbol", cfg.symbol)
+        timeframe = request.args.get("timeframe", cfg.timeframe)
         limit = int(request.args.get("limit", 200))
-        arr, _ = _fresh_candles(limit)
-        return jsonify(arr)
+        return jsonify(_fresh_candles_for(symbol, timeframe, limit))
 
     @app.route("/api/indicators", methods=["GET"])
     def api_indicators():
-        """Return SMA fast/slow series aligned with the same candles for chart overlay."""
+        """SMA fast/slow series for the requested symbol/timeframe.
+
+        The SMA lengths still come from the bot config (the strategy itself),
+        only the underlying price series changes."""
         cfg = _cfg()
-        arr, _ = _fresh_candles(200)
+        symbol = request.args.get("symbol", cfg.symbol)
+        timeframe = request.args.get("timeframe", cfg.timeframe)
+        arr = _fresh_candles_for(symbol, timeframe, 200)
         closes = [c["close"] for c in arr]
         fast = _sma(closes, cfg.sma_fast)
         slow = _sma(closes, cfg.sma_slow)
@@ -637,7 +645,7 @@ DASHBOARD_HTML = r"""<!doctype html>
   <!-- ROW: chart + side -->
   <section class="grid grid-cols-1 lg:grid-cols-3 gap-5">
     <div class="panel p-4 lg:col-span-2">
-      <div class="flex items-center justify-between mb-3">
+      <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div>
           <div class="section-title">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 17 9 11 13 15 21 7"/></svg>
@@ -645,7 +653,17 @@ DASHBOARD_HTML = r"""<!doctype html>
           </div>
           <div class="text-xs text-slate-500" id="chart-sub">—</div>
         </div>
-        <div class="text-xs text-slate-500" id="chart-tf">—</div>
+        <div class="flex items-center gap-2">
+          <select id="chart-symbol-pick" class="text-xs" style="width:auto; min-width:160px;"></select>
+          <select id="chart-tf-pick" class="text-xs" style="width:auto;">
+            <option>1m</option><option>5m</option><option>15m</option>
+            <option>1h</option><option>4h</option><option>1d</option>
+          </select>
+        </div>
+      </div>
+      <div id="chart-bot-notice" class="hidden text-xs text-amber-300 bg-amber-950/40 border border-amber-900 rounded-md px-3 py-2 mb-2">
+        Bot is trading <strong id="chart-bot-info">—</strong> — this chart is a preview only.
+        <button id="chart-reset-to-bot" class="ml-2 underline text-amber-200 hover:text-amber-100">match bot</button>
       </div>
       <div id="chart" style="width:100%;height:380px;"></div>
       <div class="mt-2 flex items-center gap-4 text-xs text-slate-400">
@@ -878,16 +896,39 @@ new ResizeObserver(() => equityChart.applyOptions({ width: equityWrap.clientWidt
 equityChart.applyOptions({ width: equityWrap.clientWidth });
 
 // ----- loaders ------------------------------------------------------------
+// chart selector state, persisted in localStorage
+let chartSymbol = localStorage.getItem('chart_symbol') || null;
+let chartTimeframe = localStorage.getItem('chart_timeframe') || null;
+let botSymbol = null;
+let botTimeframe = null;
+
 async function loadCandles() {
   try {
+    const sym = chartSymbol || botSymbol;
+    const tf = chartTimeframe || botTimeframe;
+    if (!sym || !tf) return;
+    const q = `symbol=${encodeURIComponent(sym)}&timeframe=${encodeURIComponent(tf)}&limit=200`;
     const [c, ind] = await Promise.all([
-      fetch('/api/candles?limit=200').then(r => r.json()),
-      fetch('/api/indicators').then(r => r.json()),
+      fetch('/api/candles?' + q).then(r => r.json()),
+      fetch('/api/indicators?' + q).then(r => r.json()),
     ]);
     candleSeries.setData(c);
     fastSeries.setData(ind.sma_fast || []);
     slowSeries.setData(ind.sma_slow || []);
   } catch (e) { /* ignore */ }
+}
+
+function syncChartSelectors() {
+  document.getElementById('chart-symbol-pick').value = chartSymbol || botSymbol || '';
+  document.getElementById('chart-tf-pick').value = chartTimeframe || botTimeframe || '1h';
+  const notice = document.getElementById('chart-bot-notice');
+  const differs = (chartSymbol && chartSymbol !== botSymbol) || (chartTimeframe && chartTimeframe !== botTimeframe);
+  if (differs) {
+    notice.classList.remove('hidden');
+    document.getElementById('chart-bot-info').textContent = `${botSymbol} ${botTimeframe}`;
+  } else {
+    notice.classList.add('hidden');
+  }
 }
 
 async function loadStatus() {
@@ -963,10 +1004,12 @@ async function loadStatus() {
     }
 
     // chart titles
-    document.getElementById('chart-title').textContent = s.symbol;
+    botSymbol = s.symbol;
+    botTimeframe = s.timeframe;
+    document.getElementById('chart-title').textContent = chartSymbol || s.symbol;
     document.getElementById('chart-sub').textContent =
       `${s.strategy} ${JSON.stringify(s.strategy_params)}  ·  risk ${s.risk_pct}%  ·  SL ${s.stop_loss_pct||'off'}%  ·  TP ${s.take_profit_pct||'off'}%`;
-    document.getElementById('chart-tf').textContent = 'timeframe: ' + s.timeframe;
+    syncChartSelectors();
 
     // last tick panel
     document.getElementById('ticker-signal').textContent = s.bot.last_signal || '—';
@@ -1183,20 +1226,45 @@ async function loadSymbols() {
     const r = await fetch('/api/symbols');
     const data = await r.json();
     const symbols = Array.isArray(data) ? data : (data.fallback || []);
-    const sel = document.getElementById('form-symbol');
-    sel.innerHTML = '';
-    symbols.forEach(sym => {
-      const o = document.createElement('option');
-      o.value = sym; o.textContent = sym;
-      sel.appendChild(o);
+    // populate both selects: the strategy form one and the chart picker
+    ['form-symbol', 'chart-symbol-pick'].forEach(id => {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      sel.innerHTML = '';
+      symbols.forEach(sym => {
+        const o = document.createElement('option');
+        o.value = sym; o.textContent = sym;
+        sel.appendChild(o);
+      });
     });
     const count = document.getElementById('symbol-count');
     if (count) count.textContent = `(${symbols.length} on Bitget)`;
+    syncChartSelectors();
   } catch (e) {
     const count = document.getElementById('symbol-count');
     if (count) count.textContent = '(fetch failed)';
   }
 }
+
+document.getElementById('chart-symbol-pick').addEventListener('change', (e) => {
+  chartSymbol = e.target.value;
+  localStorage.setItem('chart_symbol', chartSymbol);
+  syncChartSelectors();
+  loadCandles();
+});
+document.getElementById('chart-tf-pick').addEventListener('change', (e) => {
+  chartTimeframe = e.target.value;
+  localStorage.setItem('chart_timeframe', chartTimeframe);
+  syncChartSelectors();
+  loadCandles();
+});
+document.getElementById('chart-reset-to-bot').addEventListener('click', () => {
+  chartSymbol = null; chartTimeframe = null;
+  localStorage.removeItem('chart_symbol');
+  localStorage.removeItem('chart_timeframe');
+  syncChartSelectors();
+  loadCandles();
+});
 
 // ----- boot ---------------------------------------------------------------
 loadSymbols();
