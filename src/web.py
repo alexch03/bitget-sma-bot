@@ -393,6 +393,31 @@ def create_app():
     def api_logs():
         return jsonify({"lines": list(_bot_log)[-200:]})
 
+    @app.route("/api/symbols", methods=["GET"])
+    def api_symbols():
+        """Return the list of Bitget USDT-M swap symbols. Cached 1h."""
+        now = time.time()
+        if cache.get("symbols_ts") and now - cache["symbols_ts"] < 3600 and cache.get("symbols"):
+            return jsonify(cache["symbols"])
+        try:
+            ex = _ensure_exchange()
+            markets = ex.client.load_markets()
+            symbols = []
+            for sym, m in markets.items():
+                if m.get("swap") and m.get("linear") and m.get("quote") == "USDT" and m.get("active", True):
+                    symbols.append(sym)
+            # put the popular ones first for a nicer dropdown
+            priority = ["BTC/USDT:USDT", "ETH/USDT:USDT", "SOL/USDT:USDT",
+                        "BNB/USDT:USDT", "XRP/USDT:USDT", "DOGE/USDT:USDT"]
+            head = [s for s in priority if s in symbols]
+            tail = sorted(s for s in symbols if s not in head)
+            symbols = head + tail
+            cache["symbols"] = symbols
+            cache["symbols_ts"] = now
+            return jsonify(symbols)
+        except Exception as exc:
+            return jsonify({"error": str(exc), "fallback": cache.get("symbols") or []}), 200
+
     # ----- control endpoints ----------------------------------------------
 
     @app.route("/api/bot/start", methods=["POST"])
@@ -716,8 +741,8 @@ DASHBOARD_HTML = r"""<!doctype html>
           <select name="STRATEGY" id="form-strategy-name"></select>
         </div>
         <div>
-          <label>symbol</label>
-          <input name="SYMBOL" id="form-symbol" />
+          <label>symbol <span class="text-slate-500 normal-case text-[10px]" id="symbol-count">(loading...)</span></label>
+          <select name="SYMBOL" id="form-symbol"></select>
         </div>
         <div class="grid grid-cols-2 gap-2">
           <div><label>timeframe</label>
@@ -976,7 +1001,24 @@ async function loadStatus() {
       modeSel.value = s.mode;
 
       // fill all values
-      document.querySelector('input[name="SYMBOL"]').value = s.symbol;
+      // SYMBOL is a select populated by loadSymbols() — wait until populated to set value
+      const trySetSymbol = () => {
+        const sel = document.querySelector('select[name="SYMBOL"]');
+        if (sel && sel.options.length > 0) {
+          if ([...sel.options].some(o => o.value === s.symbol)) {
+            sel.value = s.symbol;
+          } else {
+            // not in list (custom one?) — add it
+            const opt = document.createElement('option');
+            opt.value = s.symbol; opt.textContent = s.symbol;
+            sel.insertBefore(opt, sel.firstChild);
+            sel.value = s.symbol;
+          }
+        } else {
+          setTimeout(trySetSymbol, 200);
+        }
+      };
+      trySetSymbol();
       document.querySelector('select[name="TIMEFRAME"]').value = s.timeframe;
       document.querySelector('input[name="SMA_FAST"]').value = s.sma_fast;
       document.querySelector('input[name="SMA_SLOW"]').value = s.sma_slow;
@@ -1134,7 +1176,28 @@ document.getElementById('form-mode').addEventListener('submit', (e) => {
   saveConfig('form-mode', ['MODE','CONFIRM_LIVE','TELEGRAM_BOT_TOKEN','TELEGRAM_CHAT_ID']);
 });
 
+async function loadSymbols() {
+  try {
+    const r = await fetch('/api/symbols');
+    const data = await r.json();
+    const symbols = Array.isArray(data) ? data : (data.fallback || []);
+    const sel = document.getElementById('form-symbol');
+    sel.innerHTML = '';
+    symbols.forEach(sym => {
+      const o = document.createElement('option');
+      o.value = sym; o.textContent = sym;
+      sel.appendChild(o);
+    });
+    const count = document.getElementById('symbol-count');
+    if (count) count.textContent = `(${symbols.length} on Bitget)`;
+  } catch (e) {
+    const count = document.getElementById('symbol-count');
+    if (count) count.textContent = '(fetch failed)';
+  }
+}
+
 // ----- boot ---------------------------------------------------------------
+loadSymbols();
 loadStatus(); loadCandles(); loadTrades(); loadEquity(); loadLogs();
 setInterval(loadStatus, 3000);
 setInterval(loadCandles, 30000);
