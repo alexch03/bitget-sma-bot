@@ -1,0 +1,24 @@
+services:
+  bot:
+    build: .
+    container_name: bitget-sma-bot
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./state.json:/app/state.json
+      - ./runtime.json:/app/runtime.json
+      - ./logs:/app/logs
+    command: ["python", "-m", "src.main"]
+
+  web:
+    build: .
+    container_name: bitget-sma-bot-web
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./runtime.json:/app/runtime.json
+    command: ["python", "-m", "src.web"]
+    environment:
+      - WEB_HOST=0.0.0.0
