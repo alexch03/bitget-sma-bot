@@ -1,32 +1,71 @@
+<div align="center">
+
 # bitget-sma-bot
 
-A small, readable crypto trading bot for Bitget USDT-M futures. Three pluggable
-strategies (SMA crossover, Bollinger breakout, RSI mean revert), four execution
-modes (paper / dry / demo / live), a Flask config UI, Telegram alerts, a
-backtrader engine, and a grid-search optimizer. Written to be hackable in an
-evening.
+**Bot de trading Bitget USDT-M open-source. Stratégies modulables, dashboard de contrôle, modes paper / demo / live.**
 
-> **For learning. Do not run in `live` mode with money you cannot afford to
-> lose. Read [DISCLAIMER.md](DISCLAIMER.md) first.**
+![License](https://img.shields.io/badge/license-MIT-blue) ![Python](https://img.shields.io/badge/python-3.11+-blue) ![Tests](https://img.shields.io/badge/tests-54_passing-success) ![Bitget](https://img.shields.io/badge/exchange-Bitget-orange) ![Strategies](https://img.shields.io/badge/strategies-3-purple) ![Status](https://img.shields.io/badge/status-stable-green)
+
+[🇬🇧 English](README.en.md) · [Installation](INSTALL.md) · [Documentation](docs/) · [Disclaimer](DISCLAIMER.md)
+
+![Dashboard de contrôle](docs/images/web-ui.png)
+
+</div>
 
 ---
 
-## What it does
+## Pourquoi ce projet
 
-- Pulls OHLCV candles from Bitget through [ccxt](https://github.com/ccxt/ccxt).
-- Runs a pluggable strategy (default: SMA 20/50 crossover) and trades the signal.
-- Four modes:
-  - `paper` — no orders, simulated balance, no API keys needed
-  - `dry` — no orders, decisions logged only
-  - `demo` — **real orders on Bitget's demo account** (virtual money, header `paptrading: 1`)
-  - `live` — real orders on a real account (requires `CONFIRM_LIVE=yes`)
-- Stop-loss and take-profit checked on every tick (logical exits, not exchange-side stops).
-- Telegram message on each entry, exit, and error.
-- Backtest with `backtrader` (the classic) or with a small built-in engine used by the optimizer.
-- Grid-search optimizer that fetches data once and sweeps a JSON-described param grid.
-- Minimal Flask UI on `http://localhost:5000` to change runtime params.
+La plupart des bots de trading sont soit des boîtes noires payantes, soit des scripts de quelques centaines de lignes impossibles à hacker. **bitget-sma-bot** est volontairement petit (~2 000 lignes Python), lisible en une soirée, et taillé pour servir de **point de départ solide** :
 
-![Web UI](docs/images/web-ui.png)
+- ✅ 3 stratégies pluggables (SMA crossover, Bollinger breakout, RSI mean-revert)
+- ✅ 4 modes d'exécution : `paper` (simulé), `dry` (logs only), `demo` (compte Bitget virtuel), `live` (argent réel)
+- ✅ Dashboard de contrôle complet : démarrer / arrêter le bot, ajuster la stratégie, voir le PnL en temps réel — **zéro ligne de code à toucher**
+- ✅ Backtester intégré + script d'optimisation par grid search
+- ✅ Alertes Telegram, stop-loss, take-profit, gestion du risque par % du capital
+- ✅ Testé end-to-end sur Bitget demo : ouverture / fermeture d'ordres réels, suivi des positions, vérification du PnL
+
+---
+
+## Aperçu rapide
+
+| Composant | Détails |
+|---|---|
+| **Stratégies** | SMA crossover, Bollinger breakout, RSI mean-revert — toutes héritent de `Strategy(ABC)`. Ajouter la sienne = 1 fichier |
+| **Modes** | `paper` (pas d'API key), `dry` (logs), `demo` (vrais ordres sur compte virtuel Bitget via header `paptrading: 1`), `live` |
+| **Risk** | % du capital par trade, stop-loss et take-profit en % d'entrée, vérifiés à chaque tick |
+| **Notifications** | Telegram à chaque entrée / sortie / erreur (optionnel) |
+| **Backtests** | Moteur `backtrader` (classique) + moteur léger pour grid search rapide |
+| **Tests** | 54 tests pytest + 9 tests end-to-end sur Bitget demo + 6 tests UI (Playwright) |
+
+---
+
+## Démarrage en 1 clic
+
+**Windows** : double-clique `install.bat`, édite `.env`, double-clique `start.bat` (le bot) ou `start_web.bat` (le dashboard).
+
+**Linux / macOS** :
+```bash
+chmod +x *.sh
+./install.sh
+./start_web.sh    # dashboard sur :5000
+```
+
+Puis ouvre **http://localhost:5000** et clique sur **Start Bot**.
+
+---
+
+## Le dashboard de contrôle
+
+Tout se passe ici. Pas besoin de toucher au code.
+
+- **Hero status** : badge RUNNING / PAUSED / STOPPED, uptime, boutons Start / Stop / Pause / Restart
+- **5 stat cards** : balance, position, PnL non réalisé, dernier prix, dernier signal
+- **Chart TradingView** : bougies + SMA fast / slow + ligne d'entrée. Sélecteur symbol + timeframe indépendant du bot (pour regarder l'ETH pendant que le bot trade le BTC)
+- **Courbe d'équité** reconstruite à partir des trades passés
+- **Activity log** : stdout du bot en live, polling toutes les 4 secondes
+- **3 panneaux de config** : Strategy (avec switch SMA / Bollinger / RSI + params dynamiques), Risk (RPCT, SL, TP), Mode & Alerts (paper / dry / demo / live + Telegram)
+- **Bouton Force close** : ferme la position courante au prochain tick (utilise `reduceOnly` côté exchange)
 
 ---
 
@@ -34,285 +73,172 @@ evening.
 
 ![Architecture](docs/images/architecture.svg)
 
-See [docs/architecture.md](docs/architecture.md) for the long form.
+Voir [docs/architecture.md](docs/architecture.md) pour le détail.
 
 ---
 
-## Quick start — 1-click
+## Résultats des backtests
 
-**Windows**
-
-1. Double-click `install.bat` — creates the venv, installs deps, copies `.env.example` to `.env`.
-2. Edit `.env` (your Bitget API keys, your Telegram token, the mode).
-3. Double-click `start.bat` to launch the bot, or `start_web.bat` for the config UI.
-4. `stop.bat` kills the running processes when you are done.
-
-**Linux / macOS**
+Conditions : 180 jours de données réelles Bitget, 1 000 USDT de départ, 2 % de risque par trade, SL 3 %, TP 6 %, commission 0.06 %. Reproductible avec :
 
 ```bash
-chmod +x *.sh
-./install.sh
-# edit .env
-./start.sh         # bot
-./start_web.sh     # web UI on :5000
-./stop.sh          # kill
+python examples/showcase.py --days 180
 ```
 
-## Quick start — manual
+### Meilleures configurations par paire et timeframe
 
-```bash
-git clone https://github.com/alexch03/bitget-sma-bot
-cd bitget-sma-bot
-python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+| Symbole | TF | Stratégie | Trades | Win % | Return | Max DD | Sharpe |
+|---|---|---|---|---|---|---|---|
+| **ETH** | 1d | Bollinger 20/2 | 9 | **66.7 %** | **+0.56 %** | 0.40 % | **+1.38** |
+| ETH | 4h | RSI 14 30/70 | 52 | **57.7 %** | **+0.85 %** | 0.44 % | **+0.63** |
+| ETH | 1h | SMA 20/50 | 41 | 43.9 % | +0.51 % | 0.63 % | +0.24 |
+| BTC | 4h | RSI 14 30/70 | 49 | **59.2 %** | **+0.47 %** | 0.35 % | **+0.43** |
+| BTC | 1h | SMA 20/50 | 35 | 42.9 % | +0.32 % | 0.46 % | +0.19 |
+| BTC | 1d | Bollinger 20/2 | 7 | 42.9 % | +0.20 % | 0.34 % | +0.66 |
 
-cp .env.example .env               # then edit with your keys
-python -m src.main                 # bot loop
-python -m src.web                  # config UI on :5000
-```
+Grid complet dans `examples/results/showcase/summary.csv`.
+
+### Préservation du capital pendant un crash de 30 %
+
+Sur la même fenêtre, BTC est passé de ~91 k$ à ~63 k$ (-30 %). Le buy-and-hold tombe à ~700 USDT. Les trois stratégies tiennent la ligne autour de 1 000 USDT.
+
+![Comparaison BTC 4h](examples/results/showcase/comparison_BTC_4h.png)
+
+Le bot ne fait pas fortune en bull market. Il **évite les gros mouvements baissiers**. C'est le compromis classique d'un système systématique.
 
 ---
 
-## Demo mode (recommended before live)
+## Stratégies disponibles
 
-Bitget has a real demo environment with virtual money. The bot supports it via
-the `paptrading: 1` header per the [official Bitget docs](https://www.bitget.com/api-doc/common/demotrading/restapi).
-
-1. https://www.bitget.com/asset/demo-trading — activate demo trading.
-2. Switch to demo mode in the dashboard (top of the page).
-3. Personal Center → API Key Management → **Create Demo API Key** (separate from your live keys).
-4. Permissions: Read + Trade + Futures. **Do not enable Withdrawal.**
-5. Put the three values in `.env`:
-   ```
-   BITGET_API_KEY=...
-   BITGET_API_SECRET=...
-   BITGET_API_PASSWORD=...
-   MODE=demo
-   ```
-6. Sanity check before running the bot:
-   ```bash
-   python scripts/test_demo_connection.py
-   ```
-   This fetches your balance, places a tiny limit buy 50% below market (cannot
-   fill), then cancels it. If everything works, the bot is wired correctly.
-
----
-
-## Strategies
-
-| Name | Module | Params | What it does |
+| Nom | Module | Paramètres | Idée |
 |---|---|---|---|
-| `sma_crossover` | `src/strategies/sma_crossover.py` | `fast`, `slow` | Long on fast SMA crossing above slow, short on the reverse. |
-| `bollinger` | `src/strategies/bollinger.py` | `period`, `std` | Long on close breaking above upper band, short on break below lower band. |
-| `rsi_mean_revert` | `src/strategies/rsi_mean_revert.py` | `period`, `oversold`, `overbought` | Long when RSI rebounds from oversold, short when it falls from overbought. |
+| `sma_crossover` | [src/strategies/sma_crossover.py](src/strategies/sma_crossover.py) | `fast`, `slow` | Long quand la SMA rapide croise au-dessus de la lente, short à l'inverse. |
+| `bollinger` | [src/strategies/bollinger.py](src/strategies/bollinger.py) | `period`, `std` | Long sur breakout au-dessus de la bande haute, short sur le breakout bas. |
+| `rsi_mean_revert` | [src/strategies/rsi_mean_revert.py](src/strategies/rsi_mean_revert.py) | `period`, `oversold`, `overbought` | Long quand le RSI rebondit depuis l'oversold, short quand il chute depuis l'overbought. |
 
-Add your own: subclass `Strategy` in `src/strategies/`, register it in
-`src/strategies/__init__.py::STRATEGIES`. The trader and the optimizer pick
-it up automatically.
+Ajouter sa propre stratégie = créer un fichier dans `src/strategies/`, hériter de `Strategy`, l'enregistrer dans `__init__.py::STRATEGIES`. Le trader et l'optimiseur la prennent automatiquement.
 
 ```python
-# src/strategies/my_strategy.py
+# src/strategies/ma_strategie.py
 from .base import Strategy, Decision
 
-class MyStrategy(Strategy):
-    name = "my_strategy"
+class MaStrategie(Strategy):
+    name = "ma_strategie"
     def __init__(self, lookback=14):
         self.lookback = lookback
     def warmup(self) -> int:
         return self.lookback + 1
     def signal(self, df) -> Decision:
-        # your rule here
-        return Decision("flat", "not implemented")
+        # ta règle ici
+        return Decision("flat", "pas encore implémenté")
 ```
 
 ---
 
-## Stop-loss / Take-profit
+## Mode demo Bitget (recommandé avant le live)
 
-Both are configured as a `%` from entry price in `.env`:
+Bitget propose un compte démo avec argent virtuel. Le bot supporte ce mode via le header `paptrading: 1` (voir [doc officielle Bitget](https://www.bitget.com/api-doc/common/demotrading/restapi)).
 
-```
-STOP_LOSS_PCT=3         # exit if price moves 3% against you
-TAKE_PROFIT_PCT=6       # exit if price moves 6% in your favour
-```
-
-Setting either to `0` disables it. SL/TP are checked **locally** on every loop
-tick — no stop order is placed on Bitget. If the bot is down when price moves,
-no exit happens. Documented in [docs/strategy.md](docs/strategy.md).
-
----
-
-## Backtest
-
-```bash
-# classic backtrader run, equity PNG + trades CSV in examples/results/
-python examples/run_backtest.py --symbol BTC/USDT:USDT --timeframe 1h --days 180
-```
-
-### Results that work
-
-Real Bitget OHLCV over the last 180 days, 1000 USDT starting balance, 2% risk
-per trade, SL 3%, TP 6%, 0.06% commission. Reproducible from
-`python examples/showcase.py --days 180`.
-
-**Best config per pair / timeframe — positive Sharpe, low drawdown:**
-
-| Symbol | TF | Strategy | Trades | Win % | Return | Max DD | Sharpe |
-|---|---|---|---|---|---|---|---|
-| **ETH** | 1d | Bollinger 20/2 | 9  | **66.7%** | **+0.56%** | 0.40% | **+1.38** |
-| ETH | 1h | SMA 20/50      | 41 | 43.9% | +0.51% | 0.63% | +0.24 |
-| ETH | 4h | RSI 14 30/70   | 52 | **57.7%** | **+0.85%** | 0.44% | **+0.63** |
-| BTC | 1h | SMA 20/50      | 35 | 42.9% | +0.32% | 0.46% | +0.19 |
-| BTC | 4h | RSI 14 30/70   | 49 | **59.2%** | **+0.47%** | 0.35% | **+0.43** |
-| BTC | 1d | Bollinger 20/2 | 7  | 42.9% | +0.20% | 0.34% | +0.66 |
-
-Full grid (positive and negative) is in `examples/results/showcase/summary.csv`.
-
-### Capital preservation during a 30% crash
-
-The chart below shows the three strategies on BTC 4h over the same window
-where BTC dropped from ~91k to ~63k. Buy-and-hold cratered to ~700 USDT.
-The strategies kept the balance around the 1000 USDT line.
-
-![BTC 4h strategies vs buy & hold](examples/results/showcase/comparison_BTC_4h.png)
-
-That's the value of a rule-based system: it doesn't ride bull markets, but
-it sidesteps the big down moves.
-
-### What the numbers tell you
-
-- **RSI mean-revert works on 4h** for both BTC and ETH (best Sharpe on that timeframe).
-- **Bollinger works on daily** — fewer trades, cleaner signal.
-- **SMA is the simplest baseline** and still positive on the 1h.
-- Each strategy has a sweet spot. Use the optimizer to find yours.
-
----
-
-## Optimizer
-
-Sweep a JSON-described grid on real data. Fetches OHLCV once, runs each combo
-through the built-in `simple_backtest`, ranks by your chosen metric, saves a CSV.
-
-```bash
-python examples/optimize.py \
-    --strategy sma_crossover \
-    --symbol BTC/USDT:USDT --timeframe 1h --days 120 \
-    --grid '{"fast":[10,20,50],"slow":[50,100,200]}' \
-    --risk-pct 2 --sl-pct 3 --tp-pct 6 \
-    --sort-by sharpe
-```
-
-Output goes to `examples/results/optim_<strategy>_<...>.csv`. The top 10 are
-printed to stdout.
-
----
-
-## Configuration reference
-
-All in `.env`. Example template at [`.env.example`](.env.example).
-
-| Variable | Default | Notes |
-|---|---|---|
-| `MODE` | `paper` | `paper` \| `dry` \| `demo` \| `live` |
-| `CONFIRM_LIVE` | `no` | Must be `yes` for `MODE=live` |
-| `STRATEGY` | `sma_crossover` | `sma_crossover` \| `bollinger` \| `rsi_mean_revert` |
-| `SYMBOL` | `BTC/USDT:USDT` | ccxt symbol |
-| `TIMEFRAME` | `1h` | `1m`, `5m`, `15m`, `1h`, `4h`, `1d` |
-| `SMA_FAST` / `SMA_SLOW` | `20` / `50` | SMA crossover params |
-| `BB_PERIOD` / `BB_STD` | `20` / `2.0` | Bollinger params |
-| `RSI_PERIOD` / `RSI_OVERSOLD` / `RSI_OVERBOUGHT` | `14` / `30` / `70` | RSI params |
-| `RISK_PCT` | `2.0` | % of balance per trade |
-| `STOP_LOSS_PCT` / `TAKE_PROFIT_PCT` | `0` / `0` | 0 = disabled |
-| `PAPER_BALANCE` | `1000` | Starting balance in paper mode |
-| `BITGET_API_KEY` / `BITGET_API_SECRET` / `BITGET_API_PASSWORD` | empty | Bitget keys |
-| `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` | empty | Telegram is optional |
-| `WEB_HOST` / `WEB_PORT` | `127.0.0.1` / `5000` | Flask UI bind |
-
----
-
-## Project layout
-
-```
-src/
-  config.py            env loading + mode + strategy validation
-  exchange.py          ccxt wrapper around Bitget (sets paptrading header in demo)
-  indicators.py        SMA, EMA, RSI, Bollinger bands
-  strategy.py          legacy SMA crossover helper (kept for back-compat)
-  strategies/          new pluggable framework
-    base.py            Strategy ABC, Decision, Signal types
-    sma_crossover.py
-    bollinger.py
-    rsi_mean_revert.py
-    __init__.py        registry + make_strategy() factory
-  trader.py            main loop: SL/TP check, strategy signal, paper/demo/live
-  backtest.py          backtrader engine (used by examples/run_backtest.py)
-  simple_backtest.py   small bar-by-bar engine, used by the optimizer
-  telegram_notifier.py async Telegram client
-  web.py               Flask UI for runtime config
-  main.py              entry point
-
-examples/
-  run_backtest.py      backtrader-based backtest
-  optimize.py          grid-search optimizer
-  results/             generated PNGs / CSVs
-
-scripts/
-  test_demo_connection.py    Bitget demo sanity check
-  take_screenshots.py        Playwright screenshot of the Flask UI
-
-tests/                       34 pytest tests, no network
-
-docs/
-  architecture.md     long-form architecture
-  strategy.md         strategy rules and trade-offs
-  setup.md            install + Bitget + Telegram details
-  images/             SVG diagram + UI screenshot
-```
+1. https://www.bitget.com/asset/demo-trading — activer le compte démo
+2. Passer en mode démo dans le dashboard Bitget (en haut)
+3. Personal Center → API Key Management → **Create Demo API Key** (clés séparées du live)
+4. Permissions : Read + Trade + Futures. **Pas** Withdrawal.
+5. Mettre les valeurs dans `.env` :
+   ```env
+   BITGET_API_KEY=...
+   BITGET_API_SECRET=...
+   BITGET_API_PASSWORD=...
+   MODE=demo
+   ```
+6. Vérifier que tout fonctionne avant de lancer le bot :
+   ```bash
+   python scripts/test_demo_connection.py
+   ```
 
 ---
 
 ## Tests
 
-### Unit tests (no network)
-
 ```bash
-pytest
+pytest                                        # 54 tests, ~2 min
+python scripts/e2e_full_demo.py               # 9 tests end-to-end sur Bitget demo
+python scripts/test_ui_smoke.py               # 6 tests UI Playwright
 ```
 
-34 unit tests. The exchange and Telegram clients are mocked.
-
-### End-to-end on Bitget demo
-
-`scripts/e2e_full_demo.py` runs a 9-step test suite against the **real Bitget
-demo** endpoint with your demo API key. It places small real orders
-(~12 USDT notional), watches the position appear via `fetch_positions`, and
-cleans up after itself.
-
-```bash
-# requires .env with MODE=demo and a Bitget DEMO API key
-python scripts/e2e_full_demo.py
-```
-
-Coverage:
-1. Market buy, position visible on Bitget, market sell to close
-2. `Trader.step()` with a forced long signal opens an order and keeps the book in sync
-3. Flip long → short closes the long and opens the short on the exchange
-4. Stop-loss triggers and closes both book and exchange position
-5. Take-profit triggers and closes both
-6. Five consecutive `flat` ticks place zero duplicate orders
-7. PnL accounting: real balance change after a full cycle is within fees
-8. Edge case: amount = 0 is rejected by ccxt
-9. Edge case: oversized order raises `InsufficientFunds`
-10. Final cleanup verifies no residual position
+Couverture :
+- **Unit** : indicateurs, stratégies, trader (paper / dry / demo / live), SL / TP, registry
+- **API contract** : tous les endpoints Flask + validation des entrées
+- **E2E exchange** : vrais ordres market sur Bitget démo, vérification des positions, PnL accounting, edge cases
+- **UI smoke** : Playwright headless, clic flow Start / Stop, dropdowns, erreurs JS
 
 ---
 
-## License
+## Stack technique
 
-MIT — see [LICENSE](LICENSE).
+| Couche | Choix |
+|---|---|
+| Langage | Python 3.11+ |
+| Connexion exchange | [ccxt](https://github.com/ccxt/ccxt) (multi-exchange, on utilise Bitget) |
+| Backtests | [backtrader](https://www.backtrader.com/) + moteur interne léger |
+| Notifications | [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot) v20+ |
+| Dashboard | Flask + Tailwind CSS (CDN) + [lightweight-charts](https://github.com/tradingview/lightweight-charts) |
+| Tests | pytest + Playwright |
+| Conteneurisation | Dockerfile + docker-compose |
+
+---
+
+## Structure du projet
+
+```
+src/
+  config.py              Chargement .env + validation des modes / stratégies
+  exchange.py            Wrapper ccxt Bitget (gère le header paptrading en mode demo)
+  indicators.py          SMA, EMA, RSI, Bollinger bands
+  strategies/            Framework pluggable
+    base.py              Strategy(ABC), Decision, Signal
+    sma_crossover.py     Stratégie SMA
+    bollinger.py         Stratégie Bollinger
+    rsi_mean_revert.py   Stratégie RSI
+    __init__.py          Registry + factory make_strategy()
+  trader.py              Boucle principale : check SL/TP, signal, paper/demo/live
+  backtest.py            Moteur backtrader
+  simple_backtest.py     Moteur léger pour grid search
+  telegram_notifier.py   Client Telegram async
+  web.py                 Dashboard Flask
+  main.py                Point d'entrée du bot
+
+examples/
+  run_backtest.py        Backtest backtrader
+  optimize.py            Grid search sur params
+  showcase.py            18 backtests + graphique de comparaison
+
+scripts/
+  test_demo_connection.py   Smoke test Bitget demo
+  e2e_full_demo.py          Suite end-to-end de 9 tests
+  test_ui_smoke.py          Tests UI Playwright
+  take_screenshots.py       Capture du dashboard
+
+tests/                  54 tests pytest
+
+docs/                   Architecture, stratégies, setup
+```
+
+---
 
 ## Disclaimer
 
-Educational only. Trading futures with leverage can wipe out your account in
-minutes. Read [DISCLAIMER.md](DISCLAIMER.md) before going further.
+Outil pédagogique. **N'utilise pas le mode `live` avec de l'argent que tu n'es pas prêt à perdre.** Le trading de futures avec levier peut vider un compte en quelques minutes. Lis [DISCLAIMER.md](DISCLAIMER.md) avant tout.
+
+---
+
+## Licence
+
+[MIT](LICENSE).
+
+---
+
+<div align="center">
+
+**Si le projet t'a été utile, mets-lui une ⭐ — ça aide d'autres devs à le découvrir.**
+
+</div>
