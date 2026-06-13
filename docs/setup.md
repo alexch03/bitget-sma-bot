@@ -40,7 +40,8 @@ cp .env.example .env               # puis édite avec tes clés
 
 Nécessaires uniquement pour les modes `demo` et `live`. Le mode `paper` n'a besoin d'aucune clé.
 
-> Pas encore de compte Bitget ? Utilise [ce lien de parrainage du projet](https://www.bitget.com/expressly?languageType=0&channelCode=9K5D7K4J&vipCode=9K5D7K4J) (code `9K5D7K4J`) — tu reçois le bonus de bienvenue et tu soutiens le développement du bot.
+> **Pas encore de compte Bitget ?** Inscris-toi via [le lien de parrainage du projet](https://www.bitget.com/expressly?languageType=0&channelCode=9K5D7K4J&vipCode=9K5D7K4J) (code `9K5D7K4J`).
+> Tu reçois le bonus de bienvenue Bitget en cours + des réductions de frais. En échange, le projet touche une part des frais de trading que tu paies à Bitget (zéro surcoût pour toi) — c'est ce qui finance le bot open-source. Pour que l'affiliation soit prise en compte, il faut s'inscrire via ce lien (le code est pré-rempli) et compléter le KYC. La commission ne se déclenche que sur du volume réel, pas en `demo`.
 
 ### Pour le mode demo (recommandé pour tester)
 

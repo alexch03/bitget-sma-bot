@@ -19,7 +19,8 @@ pip install -r requirements.txt
 
 You only need this if you plan to run in `live` mode.
 
-> No Bitget account yet? Sign up with [the project's referral link](https://www.bitget.com/expressly?languageType=0&channelCode=9K5D7K4J&vipCode=9K5D7K4J) (code `9K5D7K4J`) — you get the welcome bonus and you support the bot's development.
+> **No Bitget account yet?** Sign up via [the project's referral link](https://www.bitget.com/expressly?languageType=0&channelCode=9K5D7K4J&vipCode=9K5D7K4J) (code `9K5D7K4J`).
+> You get the current Bitget welcome bonus + fee discounts. In return, the project earns a share of the trading fees you pay to Bitget (no extra cost on your side) — this is what funds the open-source bot. For the affiliation to count, sign up via this link (the code is pre-filled) and complete KYC. Commissions only trigger on real trading volume, not on `demo` mode.
 
 1. Go to https://www.bitget.com/account/newapi
 2. Create a key. Give it **Read + Trade** permission. **Disable withdrawals.**

@@ -594,6 +594,31 @@ DASHBOARD_HTML = r"""<!doctype html>
 </head>
 <body class="min-h-screen">
 
+<!-- REFERRAL BANNER (top, always visible) -->
+<div class="border-b border-emerald-500/30" style="background: linear-gradient(90deg, rgba(245,158,11,.12), rgba(16,185,129,.10), rgba(37,99,235,.12));">
+  <div class="max-w-[1500px] mx-auto px-6 py-2.5 flex items-center justify-between gap-3 flex-wrap">
+    <div class="flex items-center gap-3 text-sm">
+      <span class="text-xl leading-none">🎁</span>
+      <div class="leading-snug">
+        <div>
+          <strong class="text-emerald-300">Free &amp; open-source — funded by Bitget referrals.</strong>
+          Sign up via this link to grab the current Bitget welcome bonus and support the project.
+        </div>
+        <div class="text-xs text-slate-400">
+          Affiliate code <code class="bg-slate-800/80 px-1.5 py-0.5 rounded text-amber-300 font-mono">{{ BITGET_REFERRAL_CODE }}</code>
+          is applied automatically when you sign up through the button.
+          <a href="#referral-details" class="underline text-slate-300 hover:text-white">How does it work?</a>
+        </div>
+      </div>
+    </div>
+    <a href="{{ BITGET_REFERRAL_URL }}" target="_blank" rel="noopener"
+       class="btn btn-primary inline-flex items-center gap-2 whitespace-nowrap">
+      Open a Bitget account
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </a>
+  </div>
+</div>
+
 <!-- HEADER -->
 <header class="border-b border-slate-800 sticky top-0 z-10 backdrop-blur bg-slate-950/80">
   <div class="max-w-[1500px] mx-auto px-6 py-3 flex items-center justify-between flex-wrap gap-3">
@@ -723,22 +748,29 @@ DASHBOARD_HTML = r"""<!doctype html>
         </table>
       </div>
       <div class="divider"></div>
-      <div>
+      <div id="referral-details">
         <div class="section-title">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c2.4 0 4.58.94 6.2 2.47"/><polyline points="22 4 12 14 9 11"/></svg>
-          <span>Open a Bitget account</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12v9H4v-9"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+          <span>How the referral funds this bot</span>
         </div>
-        <p class="text-xs text-slate-400 mb-2">
-          A Bitget account is required for <code class="bg-slate-800 px-1 rounded">demo</code> and
-          <code class="bg-slate-800 px-1 rounded">live</code> modes. New users currently get a <strong class="text-emerald-300">6,200 USDT welcome bonus</strong>.
-        </p>
+        <div class="text-xs text-slate-400 space-y-2">
+          <div>
+            <div class="text-emerald-300 font-semibold mb-0.5">✓ What you get</div>
+            <p>The current Bitget welcome bonus + fee discounts. The exact amount is set by Bitget and shown on the signup page.</p>
+          </div>
+          <div>
+            <div class="text-amber-300 font-semibold mb-0.5">✓ What the project gets</div>
+            <p>A share of the trading fees you pay to Bitget (no cost added to you). This is how the bot stays free and open-source — full disclosure.</p>
+          </div>
+          <div>
+            <div class="text-blue-300 font-semibold mb-0.5">⚙ How the affiliation tracks</div>
+            <p>You must register via the button above (code <code class="text-slate-300">{{ BITGET_REFERRAL_CODE }}</code> is pre-filled). KYC must be completed. The commission only kicks in on real trading volume — not on <code class="bg-slate-800 px-1 rounded">demo</code> mode.</p>
+          </div>
+        </div>
         <a href="{{ BITGET_REFERRAL_URL }}" target="_blank" rel="noopener"
-           class="btn btn-primary block text-center mb-2">
-          Sign up on Bitget
+           class="btn btn-primary block text-center mt-3">
+          Open a Bitget account
         </a>
-        <p class="text-xs text-slate-500 text-center">
-          referral code: <code class="text-slate-300">{{ BITGET_REFERRAL_CODE }}</code>
-        </p>
       </div>
     </div>
   </section>

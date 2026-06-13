@@ -343,7 +343,7 @@ def test_no_em_dashes_in_python_outputs():
             for ch in bad_chars:
                 if ch in stripped:
                     # skip if it's clearly inside an html template string
-                    if "DASHBOARD_HTML" in py.read_text():
+                    if "DASHBOARD_HTML" in py.read_text(encoding="utf-8"):
                         # the html template uses em-dashes but those go to the
                         # browser as utf-8 — that's fine
                         continue

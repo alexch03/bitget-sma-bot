@@ -139,7 +139,11 @@ class MyStrategy(Strategy):
 
 Bitget offers a demo account with virtual money. The bot supports it through the `paptrading: 1` header (see [Bitget official docs](https://www.bitget.com/api-doc/common/demotrading/restapi)).
 
-> 🎁 No Bitget account yet? Use [the project's referral link](https://www.bitget.com/expressly?languageType=0&channelCode=9K5D7K4J&vipCode=9K5D7K4J) — welcome bonus up to 6,200 USDT and it supports the project.
+> 🎁 **No Bitget account yet?** Sign up via [the project's referral link](https://www.bitget.com/expressly?languageType=0&channelCode=9K5D7K4J&vipCode=9K5D7K4J) (code `9K5D7K4J`).
+>
+> **What you get**: the current Bitget welcome bonus + fee discounts (the exact amount is set by Bitget and shown on the signup page).
+> **What the project gets**: a share of the trading fees you pay to Bitget (no extra cost on your side). This is how the bot stays free and open-source — full disclosure.
+> **For the affiliation to count**: sign up via this link (the code is pre-filled), complete KYC. Commissions only trigger on real trading volume, not on `demo` mode.
 
 1. https://www.bitget.com/asset/demo-trading — activate the demo account
 2. Switch to demo mode in the Bitget dashboard (top of the page)
