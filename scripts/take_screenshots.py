@@ -31,6 +31,11 @@ def main() -> int:
             page = browser.new_page(viewport=cfg["viewport"])
             try:
                 page.goto(cfg["url"], wait_until="networkidle", timeout=10000)
+                # clear localStorage so the chart picker doesn't show a stale symbol
+                page.evaluate("localStorage.clear()")
+                page.reload(wait_until="networkidle", timeout=10000)
+                # wait for the chart to actually have data
+                page.wait_for_timeout(3000)
             except Exception as exc:
                 print(f"FAIL {cfg['url']}: {exc}", file=sys.stderr)
                 continue

@@ -29,6 +29,14 @@ CONTROL_FILE = REPO_ROOT / "control.json"
 STATUS_FILE = REPO_ROOT / "bot_status.json"
 TRADES_FILE = REPO_ROOT / "trades.jsonl"
 
+# Bitget partner / referral link maintained by the project owner.
+# Used in the dashboard CTA and shown in the docs.
+BITGET_REFERRAL_CODE = "9K5D7K4J"
+BITGET_REFERRAL_URL = (
+    f"https://www.bitget.com/expressly?languageType=0"
+    f"&channelCode={BITGET_REFERRAL_CODE}&vipCode={BITGET_REFERRAL_CODE}"
+)
+
 
 # ---------------------------------------------------------------------------
 # Bot subprocess management
@@ -277,7 +285,11 @@ def create_app():
 
     @app.route("/", methods=["GET"])
     def index():
-        return render_template_string(DASHBOARD_HTML)
+        return render_template_string(
+            DASHBOARD_HTML,
+            BITGET_REFERRAL_URL=BITGET_REFERRAL_URL,
+            BITGET_REFERRAL_CODE=BITGET_REFERRAL_CODE,
+        )
 
     @app.route("/api/status", methods=["GET"])
     def api_status():
@@ -709,6 +721,24 @@ DASHBOARD_HTML = r"""<!doctype html>
           <tr><td>api auth</td><td id="conn-auth">—</td></tr>
           <tr><td>telegram</td><td id="conn-tg">—</td></tr>
         </table>
+      </div>
+      <div class="divider"></div>
+      <div>
+        <div class="section-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c2.4 0 4.58.94 6.2 2.47"/><polyline points="22 4 12 14 9 11"/></svg>
+          <span>Open a Bitget account</span>
+        </div>
+        <p class="text-xs text-slate-400 mb-2">
+          A Bitget account is required for <code class="bg-slate-800 px-1 rounded">demo</code> and
+          <code class="bg-slate-800 px-1 rounded">live</code> modes. New users currently get a <strong class="text-emerald-300">6,200 USDT welcome bonus</strong>.
+        </p>
+        <a href="{{ BITGET_REFERRAL_URL }}" target="_blank" rel="noopener"
+           class="btn btn-primary block text-center mb-2">
+          Sign up on Bitget
+        </a>
+        <p class="text-xs text-slate-500 text-center">
+          referral code: <code class="text-slate-300">{{ BITGET_REFERRAL_CODE }}</code>
+        </p>
       </div>
     </div>
   </section>

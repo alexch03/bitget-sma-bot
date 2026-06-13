@@ -139,6 +139,8 @@ class MyStrategy(Strategy):
 
 Bitget offers a demo account with virtual money. The bot supports it through the `paptrading: 1` header (see [Bitget official docs](https://www.bitget.com/api-doc/common/demotrading/restapi)).
 
+> 🎁 No Bitget account yet? Use [the project's referral link](https://www.bitget.com/expressly?languageType=0&channelCode=9K5D7K4J&vipCode=9K5D7K4J) — welcome bonus up to 6,200 USDT and it supports the project.
+
 1. https://www.bitget.com/asset/demo-trading — activate the demo account
 2. Switch to demo mode in the Bitget dashboard (top of the page)
 3. Personal Center → API Key Management → **Create Demo API Key** (separate from live keys)

@@ -40,6 +40,8 @@ cp .env.example .env               # puis édite avec tes clés
 
 Nécessaires uniquement pour les modes `demo` et `live`. Le mode `paper` n'a besoin d'aucune clé.
 
+> Pas encore de compte Bitget ? Utilise [ce lien de parrainage du projet](https://www.bitget.com/expressly?languageType=0&channelCode=9K5D7K4J&vipCode=9K5D7K4J) (code `9K5D7K4J`) — tu reçois le bonus de bienvenue et tu soutiens le développement du bot.
+
 ### Pour le mode demo (recommandé pour tester)
 
 1. https://www.bitget.com/asset/demo-trading

@@ -139,6 +139,8 @@ class MaStrategie(Strategy):
 
 Bitget propose un compte démo avec argent virtuel. Le bot supporte ce mode via le header `paptrading: 1` (voir [doc officielle Bitget](https://www.bitget.com/api-doc/common/demotrading/restapi)).
 
+> 🎁 Pas encore inscrit sur Bitget ? Utilise [le lien de parrainage du projet](https://www.bitget.com/expressly?languageType=0&channelCode=9K5D7K4J&vipCode=9K5D7K4J) — bonus de bienvenue jusqu'à 6 200 USDT, et tu soutiens le développement.
+
 1. https://www.bitget.com/asset/demo-trading — activer le compte démo
 2. Passer en mode démo dans le dashboard Bitget (en haut)
 3. Personal Center → API Key Management → **Create Demo API Key** (clés séparées du live)

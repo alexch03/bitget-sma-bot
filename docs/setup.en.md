@@ -19,6 +19,8 @@ pip install -r requirements.txt
 
 You only need this if you plan to run in `live` mode.
 
+> No Bitget account yet? Sign up with [the project's referral link](https://www.bitget.com/expressly?languageType=0&channelCode=9K5D7K4J&vipCode=9K5D7K4J) (code `9K5D7K4J`) — you get the welcome bonus and you support the bot's development.
+
 1. Go to https://www.bitget.com/account/newapi
 2. Create a key. Give it **Read + Trade** permission. **Disable withdrawals.**
 3. Save the API key, secret, and passphrase. The passphrase is set at creation
