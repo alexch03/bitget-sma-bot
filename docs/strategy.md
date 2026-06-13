@@ -1,144 +1,144 @@
-# Stratégies
+# Strategies
 
-> [🇬🇧 English version](strategy.en.md)
+[🇬🇧 English](strategy.md) | [🇫🇷 Français](strategy.fr.md)
 
-Le bot fournit trois stratégies, toutes héritant de `Strategy(ABC)` (voir [`src/strategies/base.py`](../src/strategies/base.py)). Chacune implémente une méthode `signal(df) -> Decision` qui renvoie `long`, `short` ou `flat`.
+The bot ships with three strategies, all inheriting from `Strategy(ABC)` (see [`src/strategies/base.py`](../src/strategies/base.py)). Each implements a `signal(df) -> Decision` method that returns `long`, `short`, or `flat`.
 
 ## 1. SMA Crossover (`sma_crossover`)
 
-Le grand classique du trend-following à deux moyennes mobiles.
+The classic two-moving-average trend-following rule.
 
-**Règles :**
+**Rules:**
 
-Soit `f` la SMA rapide (par défaut 20) et `s` la SMA lente (par défaut 50), toutes deux calculées sur les prix de clôture.
+Let `f` be the fast SMA (default 20) and `s` the slow SMA (default 50), both computed on close prices.
 
-- **Long** quand `f` croise au-dessus de `s` (le signe de `f - s` passe de ≤ 0 à > 0).
-- **Short** quand `f` croise au-dessous de `s`.
-- **Sortie** sur le signal inverse. Pas de stop-loss ni take-profit dans la règle, ceux-ci sont gérés au niveau du `Trader`.
+- **Long** when `f` crosses above `s` (the sign of `f - s` flips from ≤ 0 to > 0).
+- **Short** when `f` crosses below `s`.
+- **Exit** on the opposite signal. No stop-loss or take-profit in the rule itself — those are handled at the `Trader` level.
 
-**Quand elle marche bien :**
-- Marchés tendanciels avec peu de whipsaw
-- Timeframes hautes (4h, 1d) où le ratio signal/bruit est meilleur
+**When it does well:**
+- Trending markets with low whipsaw
+- Higher timeframes (4h, 1d) where the signal-to-noise ratio is better
 
-**Quand elle perd :**
-- Marchés range ou choppy : le bot flip constamment et brûle les frais
-- Instruments à fort levier où le petit edge par trade est mangé par le funding
+**When it loses:**
+- Range-bound or choppy markets: the bot flips constantly and burns fees
+- High-leverage instruments where the small per-trade edge is dominated by funding
 
 ## 2. Bollinger Breakout (`bollinger`)
 
-Stratégie de **breakout** basée sur les bandes de Bollinger.
+A **breakout** strategy based on Bollinger Bands.
 
-**Règles :**
+**Rules:**
 
-Soit `period` (par défaut 20) la longueur de la bande, et `std` (par défaut 2.0) le multiplicateur d'écart-type.
+Let `period` (default 20) be the band length and `std` (default 2.0) the standard-deviation multiplier.
 
-- Bande haute = SMA(close, period) + std × σ(close, period)
-- Bande basse = SMA(close, period) - std × σ(close, period)
+- Upper band = SMA(close, period) + std × σ(close, period)
+- Lower band = SMA(close, period) - std × σ(close, period)
 
-- **Long** quand le prix de clôture casse au-dessus de la bande haute (et était dedans ou en-dessous au bar précédent).
-- **Short** quand le prix de clôture casse au-dessous de la bande basse.
-- **Sortie** sur le signal opposé.
+- **Long** when the close price breaks above the upper band (and was inside or below the previous bar).
+- **Short** when the close price breaks below the lower band.
+- **Exit** on the opposite signal.
 
-**Quand elle marche bien :**
-- Marchés avec faux range puis explosion (compression suivie d'expansion)
-- Cryptos qui restent latérales avant un mouvement brutal
+**When it does well:**
+- Markets that fake a range then explode (compression followed by expansion)
+- Cryptos that drift sideways before a violent move
 
-**Quand elle perd :**
-- Vraies plages serrées où le prix revient toujours dans les bandes
-- Marchés en tendance fluide sans phase de compression visible
+**When it loses:**
+- True tight ranges where price keeps coming back inside the bands
+- Smooth trending markets with no visible compression phase
 
 ## 3. RSI Mean Revert (`rsi_mean_revert`)
 
-Stratégie **contrarienne** sur RSI.
+A **contrarian** RSI strategy.
 
-**Règles :**
+**Rules:**
 
-Soit `period` (par défaut 14), `oversold` (par défaut 30) et `overbought` (par défaut 70).
+Let `period` (default 14), `oversold` (default 30), and `overbought` (default 70).
 
-- **Long** quand le RSI rebondit au-dessus du seuil oversold (croise de bas en haut le 30).
-- **Short** quand le RSI chute sous le seuil overbought (croise de haut en bas le 70).
-- **Sortie** sur le signal opposé.
+- **Long** when RSI rebounds above the oversold threshold (crosses 30 from below).
+- **Short** when RSI drops below the overbought threshold (crosses 70 from above).
+- **Exit** on the opposite signal.
 
-**Quand elle marche bien :**
-- Marchés range qui oscillent autour d'une moyenne
-- Timeframes 4h où la respiration du marché est nette
-- ETH sur 4h donne le meilleur Sharpe du backtest showcase (+0.63)
+**When it does well:**
+- Range-bound markets oscillating around a mean
+- 4h timeframes where the market's breathing is clearest
+- ETH on 4h yields the best Sharpe in the showcase backtest (+0.63)
 
-**Quand elle perd :**
-- Tendances fortes où le RSI reste collé à l'extrême sans rebondir
-- Daily où le signal est trop lent
+**When it loses:**
+- Strong trends where RSI stays glued to the extreme without bouncing
+- Daily timeframe where the signal is too slow
 
-## Récapitulatif des sweet spots
+## Sweet-spot summary
 
-D'après le backtest showcase sur 180 jours :
+From the 180-day showcase backtest:
 
-| Stratégie | Sweet spot | Pourquoi |
+| Strategy | Sweet spot | Why |
 |---|---|---|
-| SMA crossover | 1h | Suffisamment de bougies pour confirmer un cross sans tomber dans le bruit |
-| Bollinger breakout | 1d | Volatilité plus structurée, breakouts plus rares mais plus fiables |
-| RSI mean revert | 4h | Cycles court à moyen terme, le RSI a le temps de respirer |
+| SMA crossover | 1h | Enough candles to confirm a cross without falling into noise |
+| Bollinger breakout | 1d | Volatility is more structured, breakouts are rarer but more reliable |
+| RSI mean revert | 4h | Short-to-mid cycles where RSI has room to breathe |
 
-## Ajouter sa propre stratégie
+## Adding your own strategy
 
 ```python
-# src/strategies/ma_strategie.py
+# src/strategies/my_strategy.py
 import pandas as pd
 from .base import Strategy, Decision
 
 
-class MaStrategie(Strategy):
-    name = "ma_strategie"
+class MyStrategy(Strategy):
+    name = "my_strategy"
 
     def __init__(self, lookback: int = 20, threshold: float = 0.02):
         self.lookback = lookback
         self.threshold = threshold
 
     def warmup(self) -> int:
-        """Nombre minimum de bougies nécessaires avant que signal() puisse retourner autre chose que flat."""
+        """Minimum number of candles needed before signal() can return anything other than flat."""
         return self.lookback + 1
 
     def signal(self, df: pd.DataFrame) -> Decision:
         if len(df) < self.warmup():
-            return Decision("flat", "pas assez d'historique")
+            return Decision("flat", "not enough history")
 
-        # Exemple : long si la dernière clôture est X% au-dessus de la moyenne mobile
+        # Example: long if the last close is X% above the moving average
         closes = df["close"]
         ma = closes.tail(self.lookback).mean()
         last = closes.iloc[-1]
         delta = (last - ma) / ma
 
         if delta > self.threshold:
-            return Decision("long", f"prix {delta * 100:.2f}% au-dessus de MA{self.lookback}")
+            return Decision("long", f"price {delta * 100:.2f}% above MA{self.lookback}")
         if delta < -self.threshold:
-            return Decision("short", f"prix {delta * 100:.2f}% au-dessous de MA{self.lookback}")
-        return Decision("flat", "dans la zone neutre")
+            return Decision("short", f"price {delta * 100:.2f}% below MA{self.lookback}")
+        return Decision("flat", "inside neutral zone")
 ```
 
-Puis enregistrer la stratégie dans le registry :
+Then register the strategy in the registry:
 
 ```python
 # src/strategies/__init__.py
-from .ma_strategie import MaStrategie
+from .my_strategy import MyStrategy
 
 STRATEGIES = {
     "sma_crossover": SMACrossover,
     "bollinger": BollingerBreakout,
     "rsi_mean_revert": RSIMeanRevert,
-    "ma_strategie": MaStrategie,  # nouvelle entrée
+    "my_strategy": MyStrategy,  # new entry
 }
 ```
 
-À partir de là :
-- Le dashboard l'affichera automatiquement dans le sélecteur
-- L'optimiseur (`examples/optimize.py --strategy ma_strategie`) peut grid-searcher ses params
-- Le trader peut la charger via `STRATEGY=ma_strategie` dans `.env`
+From there:
+- The dashboard automatically lists it in the selector
+- The optimizer (`examples/optimize.py --strategy my_strategy`) can grid-search its params
+- The trader can load it via `STRATEGY=my_strategy` in `.env`
 
-## Gestion du risque (au niveau du trader, pas de la stratégie)
+## Risk management (at the trader level, not the strategy)
 
-Le SL / TP / sizing sont gérés au niveau du `Trader`, pas dans la stratégie elle-même. Cela évite de dupliquer ces règles dans chaque stratégie :
+SL / TP / sizing are handled at the `Trader` level rather than inside each strategy. This avoids duplicating those rules everywhere:
 
-- **`RISK_PCT`** : fraction du capital risquée par trade. La taille du trade est calculée comme `notional = balance × RISK_PCT / 100`.
-- **`STOP_LOSS_PCT`** : sortie automatique si le prix bouge X% contre la position (0 = désactivé).
-- **`TAKE_PROFIT_PCT`** : sortie automatique si le prix bouge X% en faveur de la position (0 = désactivé).
+- **`RISK_PCT`**: fraction of balance risked per trade. Trade size is computed as `notional = balance × RISK_PCT / 100`.
+- **`STOP_LOSS_PCT`**: automatic exit if the price moves X% against the position (0 = disabled).
+- **`TAKE_PROFIT_PCT`**: automatic exit if the price moves X% in favor of the position (0 = disabled).
 
-Ces vérifications sont faites localement à chaque tick. **Aucun ordre stop n'est placé côté exchange.** Si le bot est arrêté quand le prix bouge, aucune sortie n'a lieu — c'est une limite à connaître. Pour le mode `live`, prévoir un broker-side stop est l'évolution naturelle.
+These checks happen locally on every tick. **No stop order is placed exchange-side.** If the bot is down while the price moves, no exit fires — a known limitation. For `live` mode, plugging in broker-side stops is the natural next step.

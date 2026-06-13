@@ -1,29 +1,29 @@
-# Installation rapide
+# Install guide
 
-> [🇬🇧 English version](INSTALL.en.md)
+[🇬🇧 English](INSTALL.md) | [🇫🇷 Français](INSTALL.fr.md)
 
-Lis [DISCLAIMER.md](DISCLAIMER.md) avant d'utiliser le bot avec du vrai argent.
+Quick setup for the Bitget SMA bot. Read [DISCLAIMER.md](DISCLAIMER.md) before running anything with real money.
 
-## Prérequis
+## Requirements
 
-- Python 3.11 ou plus récent
-- Un compte Bitget avec clés API (uniquement pour les modes `demo` et `live`)
+- Python 3.11 or newer
+- A Bitget account with API keys (only for `demo` and `live` modes)
 
 ## Windows
 
-1. Double-clique sur **`install.bat`** et attends la fin.
-2. Ouvre **`.env`** dans un éditeur de texte et colle tes clés Bitget.
-3. Double-clique sur **`start.bat`** pour lancer le bot, ou **`start_web.bat`** pour ouvrir le dashboard sur http://localhost:5000.
-4. **`stop.bat`** ferme tout processus bot ou web en cours.
+1. Double-click **`install.bat`** and wait for it to finish.
+2. Open **`.env`** in a text editor and paste your Bitget API keys.
+3. Double-click **`start.bat`** to run the bot, or **`start_web.bat`** to open the dashboard at http://localhost:5000.
+4. **`stop.bat`** kills any running bot/web process.
 
 ## Linux / macOS
 
 ```bash
 chmod +x *.sh
 ./install.sh
-# édite .env avec tes clés Bitget
-./start.sh           # ou ./start_web.sh
-./stop.sh            # pour arrêter
+# edit .env with your Bitget keys
+./start.sh           # or ./start_web.sh
+./stop.sh            # to stop
 ```
 
-C'est tout. En cas de souci, relance `install.bat` / `install.sh` pour réparer le venv.
+That's it. If something breaks, re-run `install.bat` / `install.sh` to repair the venv.

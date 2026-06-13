@@ -1,21 +1,21 @@
 # Disclaimer
 
-> [🇬🇧 English version](DISCLAIMER.en.md)
+[🇬🇧 English](DISCLAIMER.md) | [🇫🇷 Français](DISCLAIMER.fr.md)
 
-Ce logiciel est fourni à des **fins éducatives uniquement**. C'est un exemple compact de la façon de construire un bot de trading crypto — rien de plus.
+This software is provided for **educational purposes only**. It is a compact example of how to build a crypto trading bot — nothing more.
 
-En utilisant ce code, l'utilisateur accepte que :
+By using this code, you agree that:
 
-1. **Aucun conseil financier.** Les auteurs ne sont pas des conseillers financiers, brokers, ou professionnels licenciés. Aucune information de ce repo ne constitue une recommandation d'achat, de vente ou de conservation d'un actif.
+1. **No financial advice.** The authors are not financial advisors, brokers, or licensed professionals. Nothing in this repository should be interpreted as a recommendation to buy, sell, or hold any asset.
 
-2. **Aucune garantie.** Les résultats des backtests ne prédisent pas les performances futures. Les stratégies incluses (SMA crossover, Bollinger breakout, RSI mean-revert) sont des baselines bien connues et délibérément simples. Elles perdent dans de nombreuses conditions de marché.
+2. **No guarantees.** Past backtest results do not predict future returns. The included strategies (SMA crossover, Bollinger breakout, RSI mean-revert) are well-known baselines and intentionally simple. They lose money in many market conditions.
 
-3. **Tu es responsable de tes fonds.** Si tu mets `MODE=live`, le bot placera de vrais ordres sur ton compte Bitget. Les pertes peuvent dépasser le dépôt initial avec le levier. Les auteurs déclinent toute responsabilité pour les pertes financières.
+3. **You are responsible for your funds.** If you set `MODE=live`, the bot will place real orders on your Bitget account. Losses can exceed your initial deposit when using leverage. The authors accept no liability for any financial loss.
 
-4. **Teste d'abord en mode paper et demo.** Lance le bot au moins quelques semaines en mode `paper` ou `demo` avant de considérer le `live`. Assure-toi de comprendre chaque ligne de `src/strategies/` et `src/trader.py` avant de passer en réel.
+4. **Test in paper and demo first.** Run the bot for at least a few weeks in `paper` or `demo` mode before considering `live`. Make sure you understand every line of `src/strategies/` and `src/trader.py` before going real.
 
-5. **Clés API.** Ne partage jamais ton fichier `.env`, ne le commit jamais dans git, et donne à ta clé Bitget les permissions minimales nécessaires. **Désactive les retraits** sur toute clé utilisée par ce bot.
+5. **API keys.** Never share your `.env` file, never commit it to git, and give your Bitget key the minimum permissions you need. **Disable withdrawals** on any key used by this bot.
 
-6. **Usage légal.** Le trading de dérivés est réglementé dans de nombreuses juridictions et interdit aux particuliers dans certaines. C'est ta responsabilité de connaître et de respecter ta loi locale.
+6. **Legal use.** Trading derivatives is regulated in many jurisdictions and prohibited for retail users in some. It is your responsibility to know and follow your local laws.
 
-Si l'un des points ci-dessus n'est pas acceptable pour toi, n'utilise pas ce logiciel.
+If any of the above is not acceptable to you, do not use this software.
